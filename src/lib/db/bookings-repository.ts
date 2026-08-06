@@ -246,11 +246,61 @@ export function getBookingById(id: string): Booking | null {
   return row ? rowToBooking(row) : null;
 }
 
-export function attachPaymentIntent(bookingId: string, paymentIntentId: string): void {
+/**
+ * Attaches a Stripe PaymentIntent and extends the hold to
+ * BOOKING_CONFIG.paymentGraceMinutes (30 min), replacing the original
+ * short holdDurationMinutes (10 min).
+ *
+ * PREVENTIVE FIX for the race documented on confirmBookingByPaymentIntent
+ * below: expireStaleHolds() only checks hold_expires_at, so once a real
+ * payment attempt is underway the hold needs enough runway to survive a
+ * slow 3D Secure confirmation or delayed webhook delivery — otherwise the
+ * opportunistic sweep can free the slot to a second customer while the
+ * first customer's payment is still legitimately in flight. If the payment
+ * is actually abandoned (never completes), the slot still recovers
+ * automatically once this longer window elapses — see
+ * releaseHoldOnPaymentFailure for the faster path when Stripe tells us
+ * definitively that it failed.
+ *
+ * Returns false (and attaches nothing) if the booking already moved off
+ * pending_payment between the caller's own status check and this call —
+ * a narrow, separate race from the one above (e.g. expireStaleHolds()
+ * firing mid-request). Callers MUST check the return value: proceeding to
+ * hand a clientSecret to the browser after a false return would let someone
+ * pay for a slot the system no longer holds for them.
+ */
+export function attachPaymentIntent(bookingId: string, paymentIntentId: string): boolean {
   const db = getDb();
+  const now = new Date();
+  const graceExpiresAt = new Date(
+    now.getTime() + BOOKING_CONFIG.paymentGraceMinutes * 60_000
+  ).toISOString();
+  const result = db
+    .prepare(
+      `UPDATE bookings SET stripe_payment_intent_id = ?, hold_expires_at = ?, updated_at = ?
+       WHERE id = ? AND status = 'pending_payment'`
+    )
+    .run(paymentIntentId, graceExpiresAt, now.toISOString(), bookingId);
+  return result.changes > 0;
+}
+
+/**
+ * Immediately releases a hold when Stripe tells us the payment definitely
+ * failed or was canceled — rather than waiting out the paymentGraceMinutes
+ * window for a payment that's already known dead. Called from the
+ * payment_intent.payment_failed / payment_intent.canceled webhook handlers.
+ * No-ops if the booking already moved on (confirmed/expired/cancelled).
+ */
+export function releaseHoldOnPaymentFailure(paymentIntentId: string): void {
+  const db = getDb();
+  const row = db
+    .prepare(`SELECT id, status FROM bookings WHERE stripe_payment_intent_id = ?`)
+    .get(paymentIntentId) as Pick<BookingRow, "id" | "status"> | undefined;
+  if (!row || row.status !== "pending_payment") return;
+
   db.prepare(
-    `UPDATE bookings SET stripe_payment_intent_id = ?, updated_at = ? WHERE id = ?`
-  ).run(paymentIntentId, new Date().toISOString(), bookingId);
+    `UPDATE bookings SET status = 'expired', updated_at = ? WHERE id = ? AND status = 'pending_payment'`
+  ).run(new Date().toISOString(), row.id);
 }
 
 /**

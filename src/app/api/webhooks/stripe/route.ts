@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-import { confirmBookingByPaymentIntent } from "@/lib/db/bookings-repository";
+import { confirmBookingByPaymentIntent, releaseHoldOnPaymentFailure } from "@/lib/db/bookings-repository";
 import Stripe from "stripe";
 
 /**
@@ -36,9 +36,15 @@ export async function POST(req: NextRequest) {
       }
       break;
     }
-    // payment_intent.payment_failed intentionally left as a no-op: the
-    // booking simply stays pending_payment until its hold expires, at which
-    // point expireStaleHolds() releases the slot automatically.
+    case "payment_intent.payment_failed":
+    case "payment_intent.canceled": {
+      // Release the slot immediately on a definite failure rather than
+      // waiting out paymentGraceMinutes for a payment that's already known
+      // dead — see releaseHoldOnPaymentFailure in bookings-repository.ts.
+      const intent = event.data.object as Stripe.PaymentIntent;
+      releaseHoldOnPaymentFailure(intent.id);
+      break;
+    }
     default:
       break;
   }

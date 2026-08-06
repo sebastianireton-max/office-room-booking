@@ -52,7 +52,20 @@ export async function POST(req: NextRequest) {
       automatic_payment_methods: { enabled: true },
     });
 
-    attachPaymentIntent(booking.id, intent.id);
+    const attached = attachPaymentIntent(booking.id, intent.id);
+    if (!attached) {
+      // The hold moved off pending_payment between our check above and now
+      // (e.g. expireStaleHolds() firing on a concurrent request). No money
+      // has been captured yet — cancel the intent rather than hand the
+      // browser a clientSecret for a slot we no longer hold.
+      await stripe.paymentIntents.cancel(intent.id).catch((cancelErr) => {
+        console.error("Failed to cancel orphaned PaymentIntent", intent.id, cancelErr);
+      });
+      return NextResponse.json(
+        { error: "That time slot was just booked by someone else. Please choose another time." },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({ clientSecret: intent.client_secret });
   } catch (err) {

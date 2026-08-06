@@ -66,4 +66,9 @@ export const BOOKING_CONFIG = {
   minBookingNoticeHours: 2,
   turnoverBufferMinutes: 15,
   holdDurationMinutes: 10,
+  /** Once a Stripe PaymentIntent is attached, the hold is extended to this
+   * window instead of the original holdDurationMinutes — see attachPaymentIntent
+   * in bookings-repository.ts. Covers slow 3D Secure / delayed webhook delivery
+   * without leaving an abandoned payment attempt locking the slot forever. */
+  paymentGraceMinutes: 30,
 } as const;
