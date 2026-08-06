@@ -25,12 +25,23 @@ not just an aesthetic one.
   `/design:handoff` (dev handoff specs from Figma), `/design:research-synthesis`.
   These are what actually produced the original 31-page design package —
   use them for real, don't just cite them.
-- Note: an earlier agent definition in a sibling project (`optimized-aminos`)
-  references skill names like "design-taste-frontend" and
-  "high-end-visual-design" — those are **not real, available skills in this
-  environment** (checked directly; they don't exist on this account). Don't
-  reference them or assume they'll load. Work from the `design` plugin above
-  plus direct judgment instead.
+- **Skill packs installed at `.agents/skills/` (symlinked into
+  `.claude/skills/`)**, via the `vercel-labs/skills` CLI from
+  `Leonxlnx/taste-skill` and `DietrichGebert/ponytail` — read the relevant
+  `SKILL.md` before applying it, don't rely on the name alone:
+  - `design-taste-frontend` / `design-taste-frontend-v1` — primary
+    anti-slop methodology: brief inference, the three dials (VARIANCE /
+    MOTION / DENSITY), anti-default discipline.
+  - `high-end-visual-design` — Awwwards-tier component craft.
+  - `minimalist-ui`, `industrial-brutalist-ui`, `stitch-design-taste`,
+    `gpt-taste`, `brandkit` — pull from whichever fits a specific finding,
+    don't force one aesthetic onto a booking-flow UI.
+  - `redesign-existing-projects` — audit-first framing for exactly this
+    kind of "improve what's already built" pass.
+  - (This is where optimized-aminos's `design-taste-auditor` agent got
+    these skill names from — it referenced them without ever actually
+    installing them. Worth doing the same install there if that project
+    wants this workflow too — not done as part of this task.)
 - **Figma file** (design tokens + 5 of 6 core components; Room Card and all
   3 screens still blocked on that account's rate limit as of last check):
   https://www.figma.com/design/LlgUu20D5khynwb0ilOKBa
