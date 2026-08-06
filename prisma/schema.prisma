@@ -1,0 +1,95 @@
+// Production data model reference — design package Section 5.3.
+//
+// This sandbox environment cannot reach binaries.prisma.sh to download
+// Prisma's query engine (network restriction on this specific cloud
+// container), so the running app uses an equivalent embedded implementation
+// via Node's built-in `node:sqlite` — see src/lib/db/. That implementation
+// follows this exact schema. Outside this sandbox (your own machine, CI, or
+// production), `npx prisma generate` / `npx prisma migrate dev` will work
+// normally against a real Postgres database.
+//
+// To switch the app to Prisma + Postgres for production:
+//   1. Set DATABASE_URL in .env.local to a Postgres connection string.
+//   2. Run `npx prisma migrate dev --name init`.
+//   3. Reimplement the functions in src/lib/db/bookings-repository.ts using
+//      `prisma.booking.*` instead of raw SQL — the function signatures are
+//      the exported contract; nothing that calls them needs to change.
+//   Rooms currently live in src/lib/rooms-data.ts (see the comment there).
+//   Add a `Room` table here (fields already match src/types/domain.ts) if
+//   you want rooms to become admin-editable data instead of code.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoomType {
+  content
+  podcast
+  conference
+}
+
+enum BookingStatus {
+  pending_payment
+  confirmed
+  cancelled
+  completed
+  expired
+}
+
+/// Currently sourced from src/lib/rooms-data.ts. Add this table when rooms
+/// need to be editable without a deploy (e.g. an admin UI).
+model Room {
+  id              String   @id
+  name            String
+  type            RoomType
+  capacity        Int
+  sqft            Int
+  /// Integer cents — never a float. Design package Section 5.3.
+  hourlyRateCents Int
+  description     String
+  equipment       String[]
+  active          Boolean  @default(true)
+
+  bookings Booking[]
+}
+
+model Booking {
+  id             String   @id @default(uuid())
+  roomId         String
+  room           Room?    @relation(fields: [roomId], references: [id])
+  customerName   String
+  customerEmail  String
+  customerPhone  String?
+
+  /// ISO date, e.g. "2026-08-20"
+  date      String
+  /// 24h "HH:mm"
+  startTime String
+  /// 24h "HH:mm"
+  endTime   String
+  durationMinutes Int
+
+  /// Snapshotted at booking time — never recomputed live.
+  priceCents Int
+
+  status                BookingStatus @default(pending_payment)
+  stripePaymentIntentId String?       @unique
+  /// Slot hold expiry. Null once confirmed. Design package Section 5.3 —
+  /// "Time-based slot hold (required, not optional)".
+  holdExpiresAt         DateTime?
+
+  /// Stable UID so re-downloading/updating the calendar event doesn't
+  /// duplicate it.
+  calendarEventUid String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roomId, date])
+  @@index([status])
+}

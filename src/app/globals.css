@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — mirrors the Figma file exactly (file key LlgUu20D5khynwb0ilOKBa).
+ * Primitives -> Semantics -> Tailwind theme, same three-layer structure as Figma.
+ * See the delivered design package, Section 4, for the source of truth.
+ *
+ * NOTE: color/bg/accent (default) and color/border/default were shifted from the
+ * original Figma values per the Accessibility fixes in Section 8.3-8.4 of the
+ * design package (verified WCAG 2.1 AA contrast fixes). Figma should be updated
+ * to match these corrected values when screen work resumes there.
+ */
+
+:root {
+  /* ---- Primitives ---- */
+  --neutral-0: #0a0a0b;
+  --neutral-50: #131316;
+  --neutral-100: #1c1c21;
+  --neutral-200: #26262c;
+  --neutral-300: #35353d;
+  --neutral-400: #55555f;
+  --neutral-500: #7a7a85;
+  --neutral-600: #9e9ea7;
+  --neutral-700: #c4c4cb;
+  --neutral-800: #e4e4e8;
+  --neutral-900: #f5f5f7;
+  --neutral-1000: #ffffff;
+
+  --accent-violet-300: #b8a9ff;
+  --accent-violet-400: #9b87ff;
+  --accent-violet-500: #7c5cfc;
+  --accent-violet-600: #6a46f0;
+  --accent-violet-700: #5636d6;
+
+  --accent-coral-400: #ff6b5e;
+  --accent-coral-500: #ff4433;
+
+  --status-success: #34c77b;
+  --status-warning: #f5a623;
+  --status-error: #ff4d4f;
+  --status-info: #4da3ff;
+
+  /* ---- Semantics ---- */
+  --color-bg-canvas: var(--neutral-0);
+  --color-bg-surface: var(--neutral-100);
+  --color-bg-surface-raised: var(--neutral-200);
+  --color-bg-surface-light: var(--neutral-900);
+
+  --color-text-primary: var(--neutral-1000);
+  --color-text-secondary: var(--neutral-600);
+  --color-text-on-light: var(--neutral-50);
+  --color-text-on-light-secondary: var(--neutral-400);
+
+  /* FIX (design package Section 8.4): neutral/300 measured 1.63:1 on canvas,
+     failing the 3:1 non-text contrast requirement. Reassigned to neutral/500
+     (4.66:1 on canvas, 4.00:1 on surface). */
+  --color-border-default: var(--neutral-500);
+  --color-border-subtle: var(--neutral-200);
+
+  /* FIX (design package Section 8.3): white-on-accent-violet/500 measured 4.38:1,
+     failing the 4.5:1 AA text contrast requirement on the button default state.
+     Default now uses accent-violet/600; hover moves one step darker to 700. */
+  --color-bg-accent: var(--accent-violet-600);
+  --color-bg-accent-hover: var(--accent-violet-700);
+  --color-text-accent: var(--accent-violet-400);
+  --color-border-accent: var(--accent-violet-500);
+  --color-text-on-accent: var(--neutral-1000);
+
+  --color-bg-live: var(--accent-coral-500);
+  --color-text-live: var(--accent-coral-400);
+
+  --color-bg-status-success: var(--status-success);
+  --color-bg-status-warning: var(--status-warning);
+  --color-bg-status-error: var(--status-error);
+  --color-bg-status-info: var(--status-info);
+  --color-text-status-error: var(--status-error);
+
+  /* ---- Spacing ---- */
+  --spacing-2xs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  --spacing-4xl: 96px;
+
+  /* ---- Radius ---- */
+  --radius-none: 0px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* ---- Effects ---- */
+  --shadow-subtle: 0 2px 8px 0 rgb(0 0 0 / 0.24);
+  --shadow-medium: 0 4px 16px 0 rgb(0 0 0 / 0.28), 0 1px 4px 0 rgb(0 0 0 / 0.2);
+  --shadow-strong: 0 12px 32px 0 rgb(0 0 0 / 0.36), 0 2px 8px 0 rgb(0 0 0 / 0.24);
+}
+
+@theme inline {
+  --color-canvas: var(--color-bg-canvas);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-raised: var(--color-bg-surface-raised);
+  --color-surface-light: var(--color-bg-surface-light);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-on-light: var(--color-text-on-light);
+  --color-text-on-light-secondary: var(--color-text-on-light-secondary);
+
+  --color-border-default: var(--color-border-default);
+  --color-border-subtle: var(--color-border-subtle);
+
+  --color-accent: var(--color-bg-accent);
+  --color-accent-hover: var(--color-bg-accent-hover);
+  --color-text-accent: var(--color-text-accent);
+  --color-border-accent: var(--color-border-accent);
+  --color-on-accent: var(--color-text-on-accent);
+
+  --color-live: var(--color-bg-live);
+  --color-text-live: var(--color-text-live);
+
+  --color-success: var(--color-bg-status-success);
+  --color-warning: var(--color-bg-status-warning);
+  --color-error: var(--color-bg-status-error);
+  --color-info: var(--color-bg-status-info);
+
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-token-sm: var(--radius-sm);
+  --radius-token-md: var(--radius-md);
+  --radius-token-lg: var(--radius-lg);
+  --radius-token-full: var(--radius-full);
+}
+
+body {
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--color-border-default);
+}
+
+/* Visible focus indicator — required, design package Section 8.6 #2. Never remove
+   the outline without replacing it. */
+:focus-visible {
+  outline: 2px solid var(--color-border-accent);
+  outline-offset: 2px;
+}
