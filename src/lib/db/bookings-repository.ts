@@ -257,6 +257,30 @@ export function attachPaymentIntent(bookingId: string, paymentIntentId: string):
  * Marks a booking confirmed. Called ONLY from the Stripe webhook handler
  * after signature verification of a payment_intent.succeeded event — never
  * from a client-side redirect. Design package Section 10.3.
+ *
+ * SECURITY/INTEGRITY GUARD (added by security-auditor, 2nd pass): only
+ * transitions pending_payment -> confirmed (the normal path), or re-confirms
+ * an already-confirmed booking (idempotent no-op for Stripe's webhook
+ * retries). It deliberately does NOT resurrect an expired/cancelled booking
+ * back to confirmed.
+ *
+ * Why: `expireStaleHolds()` runs opportunistically on every read/write and
+ * flips a stale pending_payment hold to 'expired' the moment its
+ * hold_expires_at passes — independently of whether a PaymentIntent for it
+ * is still in flight (e.g. a slow 3D Secure confirmation, or a delayed
+ * webhook delivery). If that late-but-legitimate payment_intent.succeeded
+ * event were still allowed to unconditionally flip the row to 'confirmed',
+ * it could resurrect a booking whose slot has since been re-sold: a second
+ * customer can hold + pay for the same room/date/time once the first
+ * booking shows as 'expired', producing two 'confirmed' rows for the same
+ * slot when the first customer's payment finally clears. Reproduced locally
+ * against a throwaway sqlite db using this file's own SQL before this fix.
+ *
+ * This guard stops the double-booked-confirmed state, but does NOT decide
+ * what should happen to the affected customer (who did legitimately pay) —
+ * that's a product/business call (auto-refund? manual outreach? try to
+ * rebook them?) left for the owner. The case is logged loudly so it's
+ * discoverable instead of failing silently.
  */
 export function confirmBookingByPaymentIntent(paymentIntentId: string): Booking | null {
   const db = getDb();
@@ -264,6 +288,16 @@ export function confirmBookingByPaymentIntent(paymentIntentId: string): Booking 
     .prepare(`SELECT * FROM bookings WHERE stripe_payment_intent_id = ?`)
     .get(paymentIntentId) as BookingRow | undefined;
   if (!row) return null;
+
+  if (row.status !== "pending_payment" && row.status !== "confirmed") {
+    console.error(
+      `payment_intent.succeeded for paymentIntentId=${paymentIntentId} bookingId=${row.id}, but the ` +
+        `booking's hold already moved to status="${row.status}" (likely expired before this payment ` +
+        "confirmed). NOT auto-confirming — the slot may already be booked by someone else. This booking " +
+        "needs manual reconciliation (the customer was charged; verify and refund or rebook as appropriate)."
+    );
+    return null;
+  }
 
   db.prepare(
     `UPDATE bookings SET status = 'confirmed', hold_expires_at = NULL, updated_at = ? WHERE id = ?`
