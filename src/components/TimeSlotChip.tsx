@@ -22,7 +22,7 @@ export function TimeSlotChip({
       onClick={onClick}
       aria-pressed={state === "selected"}
       className={[
-        "min-h-11 min-w-11 rounded-token-sm border px-3.5 py-2.5 text-sm font-medium tracking-[0.1px] transition-colors",
+        "min-h-11 min-w-11 rounded-token-sm border px-3.5 py-2.5 text-sm font-medium tracking-[0.1px] transition active:scale-[0.98] motion-reduce:active:scale-100",
         state === "available" &&
           "border-border-default bg-surface-raised text-text-primary hover:border-border-accent",
         state === "selected" && "border-accent bg-accent text-on-accent",

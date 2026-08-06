@@ -104,7 +104,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="flex w-full max-w-lg flex-col gap-6 rounded-token-lg bg-surface p-8 text-center shadow-[var(--shadow-medium)]">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success text-2xl text-on-accent">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success text-2xl text-on-success">
           ✓
         </div>
         <h1 className="text-3xl font-semibold tracking-[-0.5px] text-text-primary">You&apos;re booked!</h1>

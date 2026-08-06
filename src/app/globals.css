@@ -12,6 +12,14 @@
  */
 
 :root {
+  /* FIX (design-auditor pass, 2026-08-06): without this, native form controls
+     (the date-picker's calendar icon/panel in BookingFlow, scrollbars) render
+     with the browser's light-mode default chrome on this dark-only page —
+     reads as an unstyled OS widget dropped into the product. This tells the
+     UA to use its dark control set instead; no visual/functional change to
+     any control this app draws itself. */
+  color-scheme: dark;
+
   /* ---- Primitives ---- */
   --neutral-0: #0a0a0b;
   --neutral-50: #131316;
@@ -75,6 +83,14 @@
   --color-bg-status-info: var(--status-info);
   --color-text-status-error: var(--status-error);
 
+  /* FIX (design-auditor pass, 2026-08-06): white text/icons on status-success
+     (#34C77B) measured 2.19:1 — fails AA even at the relaxed 3:1 large-text/
+     graphics threshold, let alone 4.5:1. Was reusing --color-text-on-accent
+     (white), which is correctly tuned for the violet accent, not this green.
+     neutral/50 on this green measures 8.48:1. Use this token (not
+     text-on-accent) anywhere text/icons sit on a bg-success fill. */
+  --color-text-on-success: var(--neutral-50);
+
   /* ---- Spacing ---- */
   --spacing-2xs: 2px;
   --spacing-xs: 4px;
@@ -121,6 +137,8 @@
 
   --color-live: var(--color-bg-live);
   --color-text-live: var(--color-text-live);
+
+  --color-on-success: var(--color-text-on-success);
 
   --color-success: var(--color-bg-status-success);
   --color-warning: var(--color-bg-status-warning);

@@ -22,7 +22,7 @@ export function StepIndicator({ steps, currentIndex }: { steps: Step[]; currentI
                 <div
                   className={[
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium",
-                    state === "completed" && "bg-success text-on-accent",
+                    state === "completed" && "bg-success text-on-success",
                     state === "current" && "bg-accent text-on-accent",
                     state === "upcoming" && "bg-surface border border-border-default text-text-secondary",
                   ]

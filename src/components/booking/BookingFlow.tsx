@@ -213,7 +213,7 @@ export function BookingFlow({ room }: { room: Room }) {
                   key={d.minutes}
                   type="button"
                   onClick={() => setDurationMinutes(d.minutes)}
-                  className={`min-h-11 flex-1 rounded-token-sm border px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`min-h-11 flex-1 rounded-token-sm border px-3 py-2.5 text-sm font-medium transition active:scale-[0.98] motion-reduce:active:scale-100 ${
                     durationMinutes === d.minutes
                       ? "border-accent bg-accent text-on-accent"
                       : "border-border-default bg-surface-raised text-text-primary"

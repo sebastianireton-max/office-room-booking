@@ -20,7 +20,7 @@ const styles: Record<Style, string> = {
 };
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-token-md px-5 py-2.5 text-sm font-medium tracking-[0.1px] transition-colors disabled:cursor-not-allowed min-h-11";
+  "inline-flex items-center justify-center gap-2 rounded-token-md px-5 py-2.5 text-sm font-medium tracking-[0.1px] transition disabled:cursor-not-allowed min-h-11 active:scale-[0.98] motion-reduce:active:scale-100";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Style;
