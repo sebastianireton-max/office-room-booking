@@ -13,6 +13,13 @@ export interface Room {
   description: string;
   equipment: string[];
   active: boolean;
+  /** Landing-page marketing fields (added 2026-08-07 when the deferred
+   * per-room pages were built). Copy must stay grounded in the room's
+   * actual equipment/specs — no invented amenities, no fabricated social
+   * proof. */
+  tagline: string;
+  marketingDescription: string;
+  idealFor: string[];
 }
 
 export type BookingStatus =
