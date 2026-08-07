@@ -12,70 +12,78 @@
  */
 
 :root {
-  /* FIX (design-auditor pass, 2026-08-06): without this, native form controls
-     (the date-picker's calendar icon/panel in BookingFlow, scrollbars) render
-     with the browser's light-mode default chrome on this dark-only page —
-     reads as an unstyled OS widget dropped into the product. This tells the
-     UA to use its dark control set instead; no visual/functional change to
-     any control this app draws itself. */
-  color-scheme: dark;
+  /* Native form controls (date-picker chrome, scrollbars) should match the
+     app's theme. RESTYLE 2026-08-07: the whole site moved from the original
+     dark theme to a light editorial direction (owner-requested, styled after
+     a studio-rental reference site: warm light neutrals, coral accent,
+     display-serif headlines). This is deliberate — don't "restore" the dark
+     theme or the violet accent in a future consistency pass; the Figma file
+     and design package predate this and should be updated to match the code,
+     not the reverse. */
+  color-scheme: light;
 
   /* ---- Primitives ---- */
-  --neutral-0: #0a0a0b;
-  --neutral-50: #131316;
-  --neutral-100: #1c1c21;
-  --neutral-200: #26262c;
-  --neutral-300: #35353d;
-  --neutral-400: #55555f;
-  --neutral-500: #7a7a85;
-  --neutral-600: #9e9ea7;
-  --neutral-700: #c4c4cb;
-  --neutral-800: #e4e4e8;
-  --neutral-900: #f5f5f7;
+  /* Warm neutral ramp (dark -> light). Scale direction unchanged from the
+     original system (0 = darkest), so tokens like text-on-success that
+     reference the dark end keep working unmodified. */
+  --neutral-0: #171513;
+  --neutral-50: #1c1a18;
+  --neutral-100: #262320;
+  --neutral-200: #33302c;
+  --neutral-300: #4a453f;
+  --neutral-400: #5f5b54;
+  --neutral-500: #7a746c;
+  --neutral-600: #9b948b;
+  --neutral-700: #c8c2b9;
+  --neutral-800: #e7e2db;
+  --neutral-900: #f2efea;
   --neutral-1000: #ffffff;
+  --cream: #faf8f6;
 
-  --accent-violet-300: #b8a9ff;
-  --accent-violet-400: #9b87ff;
-  --accent-violet-500: #7c5cfc;
-  --accent-violet-600: #6a46f0;
-  --accent-violet-700: #5636d6;
+  /* Coral accent family. 500 is the display accent (3.32:1 on cream — passes
+     the 3:1 large-text/graphics floor, NOT body-text-safe). 600 is the
+     interactive fill: white text on it measures 5.11:1 (AA). Same discipline
+     as the old violet-500/600 split — don't put white body text on 500. */
+  --accent-coral-300: #ffb4a6;
+  --accent-coral-400: #f4715f;
+  --accent-coral-500: #f0523d;
+  --accent-coral-600: #c93a20;
+  --accent-coral-700: #a92f18;
 
-  --accent-coral-400: #ff6b5e;
-  --accent-coral-500: #ff4433;
-
+  /* Status colors, tuned for text/fills on LIGHT backgrounds (the originals
+     were tuned for the dark theme; #ff4d4f error text on cream measured well
+     under 4.5:1). */
   --status-success: #34c77b;
-  --status-warning: #f5a623;
-  --status-error: #ff4d4f;
-  --status-info: #4da3ff;
+  --status-warning: #9a6a00;
+  --status-error: #d92d20;
+  --status-info: #1d6fc9;
 
   /* ---- Semantics ---- */
-  --color-bg-canvas: var(--neutral-0);
-  --color-bg-surface: var(--neutral-100);
-  --color-bg-surface-raised: var(--neutral-200);
-  --color-bg-surface-light: var(--neutral-900);
+  --color-bg-canvas: var(--cream);
+  --color-bg-surface: var(--neutral-1000);
+  --color-bg-surface-raised: var(--neutral-900);
+  --color-bg-surface-light: var(--neutral-1000);
 
-  --color-text-primary: var(--neutral-1000);
-  --color-text-secondary: var(--neutral-600);
+  --color-text-primary: var(--neutral-50);
+  --color-text-secondary: var(--neutral-400); /* 6.36:1 on cream */
   --color-text-on-light: var(--neutral-50);
   --color-text-on-light-secondary: var(--neutral-400);
 
-  /* FIX (design package Section 8.4): neutral/300 measured 1.63:1 on canvas,
-     failing the 3:1 non-text contrast requirement. Reassigned to neutral/500
-     (4.66:1 on canvas, 4.00:1 on surface). */
+  /* Non-text borders need >= 3:1 against their background (same rule the old
+     dark theme's border fix enforced). neutral-500 on cream measures ~3.3:1. */
   --color-border-default: var(--neutral-500);
-  --color-border-subtle: var(--neutral-200);
+  --color-border-subtle: var(--neutral-800);
 
-  /* FIX (design package Section 8.3): white-on-accent-violet/500 measured 4.38:1,
-     failing the 4.5:1 AA text contrast requirement on the button default state.
-     Default now uses accent-violet/600; hover moves one step darker to 700. */
-  --color-bg-accent: var(--accent-violet-600);
-  --color-bg-accent-hover: var(--accent-violet-700);
-  --color-text-accent: var(--accent-violet-400);
-  --color-border-accent: var(--accent-violet-500);
+  /* White text requires the 600 fill (5.11:1) — never the 500 display accent
+     (3.51:1, fails AA). Mirrors the old violet-500/600 fix exactly. */
+  --color-bg-accent: var(--accent-coral-600);
+  --color-bg-accent-hover: var(--accent-coral-700);
+  --color-text-accent: var(--accent-coral-600); /* 4.88:1 on cream — AA text */
+  --color-border-accent: var(--accent-coral-500);
   --color-text-on-accent: var(--neutral-1000);
 
-  --color-bg-live: var(--accent-coral-500);
-  --color-text-live: var(--accent-coral-400);
+  --color-bg-live: var(--accent-coral-600);
+  --color-text-live: var(--accent-coral-600);
 
   --color-bg-status-success: var(--status-success);
   --color-bg-status-warning: var(--status-warning);
@@ -110,9 +118,11 @@
   --radius-full: 999px;
 
   /* ---- Effects ---- */
-  --shadow-subtle: 0 2px 8px 0 rgb(0 0 0 / 0.24);
-  --shadow-medium: 0 4px 16px 0 rgb(0 0 0 / 0.28), 0 1px 4px 0 rgb(0 0 0 / 0.2);
-  --shadow-strong: 0 12px 32px 0 rgb(0 0 0 / 0.36), 0 2px 8px 0 rgb(0 0 0 / 0.24);
+  /* Softened for the light theme — dark-theme shadow opacities read as harsh
+     smudges on cream. */
+  --shadow-subtle: 0 2px 8px 0 rgb(23 21 19 / 0.06);
+  --shadow-medium: 0 4px 16px 0 rgb(23 21 19 / 0.08), 0 1px 4px 0 rgb(23 21 19 / 0.05);
+  --shadow-strong: 0 12px 32px 0 rgb(23 21 19 / 0.12), 0 2px 8px 0 rgb(23 21 19 / 0.06);
 }
 
 @theme inline {
@@ -146,6 +156,9 @@
   --color-info: var(--color-bg-status-info);
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Editorial display serif for headlines (restyle 2026-08-07). Use via the
+     `font-display` utility on headings; body copy stays on the sans. */
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
 
   --radius-token-sm: var(--radius-sm);
   --radius-token-md: var(--radius-md);

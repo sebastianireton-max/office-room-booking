@@ -22,7 +22,7 @@ export function RoomCard({ room }: { room: Room }) {
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
         <RoomTypeBadge type={room.type} />
-        <h3 className="text-xl font-semibold text-text-primary">{room.name}</h3>
+        <h3 className="font-display text-2xl font-medium lowercase italic text-text-primary">{room.name}</h3>
         <p className="text-sm text-text-secondary">
           {room.capacity} people · {room.sqft} sq ft
         </p>

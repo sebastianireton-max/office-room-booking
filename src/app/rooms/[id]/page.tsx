@@ -25,7 +25,7 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
           />
           <div className="flex flex-col gap-3">
             <RoomTypeBadge type={room.type} />
-            <h1 className="text-3xl font-semibold tracking-[-0.5px] text-text-primary">{room.name}</h1>
+            <h1 className="font-display text-4xl font-medium lowercase italic tracking-[-0.5px] text-text-primary">{room.name}</h1>
             <p className="text-sm text-text-secondary">
               {room.capacity} people · {room.sqft} sq ft · {formatUsdPerHour(room.hourlyRateCents)}
             </p>

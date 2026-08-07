@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-// Self-hosted variable Inter (bundled in node_modules, no runtime fetch to
+// Self-hosted variable fonts (bundled in node_modules, no runtime fetch to
 // Google's CDN needed at build time) — see PROJECT_CONTEXT.md for why this
-// was chosen over next/font/google.
+// was chosen over next/font/google. Fraunces is the editorial display serif
+// for headlines (restyle 2026-08-07); Inter stays as the body sans.
 import "@fontsource-variable/inter";
+import "@fontsource-variable/fraunces";
 import "./globals.css";
 
 export const metadata: Metadata = {

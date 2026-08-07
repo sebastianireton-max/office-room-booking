@@ -83,12 +83,15 @@ export function PaymentStep({ booking, clientSecret }: { booking: Booking; clien
       options={{
         clientSecret,
         appearance: {
-          theme: "night",
+          // Light editorial restyle 2026-08-07 — values mirror globals.css
+          // tokens (coral-600 accent, warm neutrals). Visual config only;
+          // the clientSecret/stripe wiring above is untouched.
+          theme: "stripe",
           variables: {
-            colorPrimary: "#6A46F0",
-            colorBackground: "#1C1C21",
-            colorText: "#FFFFFF",
-            colorDanger: "#FF4D4F",
+            colorPrimary: "#C93A20",
+            colorBackground: "#FFFFFF",
+            colorText: "#1C1A18",
+            colorDanger: "#D92D20",
             borderRadius: "6px",
           },
         },
