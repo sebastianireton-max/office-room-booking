@@ -1,5 +1,6 @@
 @AGENTS.md
 @PROJECT_CONTEXT.md
+@ORCHESTRATION.md
 
 ## Design skill — reference on every prompt touching UI
 
