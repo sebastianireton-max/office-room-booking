@@ -138,11 +138,22 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
     string is `SemiBold` (no space), unlike Inter's `Semi Bold`.
   - **Room Card** component built (it was the one component the original
     build never reached).
-  - All three pages are populated: Homepage (hero, room grid with all six
-    rooms, how-it-works, FAQ teaser, closing CTA, footer), Room Detail
-    (identity hero, photo placeholder, marketing copy, made-for chips,
-    equipment, embedded booking step 1), and Checkout Flow (step 2 details,
-    step 3 payment).
+  - **File structure is now two pages**: `Foundations & Components` (tokens,
+    styles, the six components) and `Prototype — Full Site` (all ten screens
+    in one row). The three original `Screens — *` pages were consolidated and
+    removed once empty, because **Figma prototype flows cannot navigate across
+    pages**: a clickable full-site preview requires every frame on one page.
+  - **Ten screens**: Homepage, Pricing, Room Detail, Checkout step 2, Checkout
+    step 3, Confirmation, FAQ, About, Contact, and a Legal template covering
+    Terms and Privacy.
+  - **Clickable prototype**, flow starting point on Homepage. 191 links wired:
+    header and footer navigation on every screen, room cards and pricing rows
+    into Room Detail, and the booking path Room Detail → step 2 → step 3 →
+    Confirmation, with working Back links. Transitions are instant; Smart
+    Animate cross-dissolves between unrelated pages read as a glitch.
+    Preview: https://www.figma.com/proto/LlgUu20D5khynwb0ilOKBa/Room-Booking-Platform-Design?node-id=39-5&starting-point-node-id=39-5
+  - Nav labels are wrapped in padded `Nav / <label>` hit areas. Raw text
+    hotspots were 40x17px and are unreliable to click.
 - Figma deliberately mirrors the shipped `· Booked` slot wording, including
   the known mislabel bug (§8 item 1). Do not "fix" copy in Figma that has
   not shipped in code — that recreates the drift this sync just removed.
