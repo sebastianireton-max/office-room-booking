@@ -8,7 +8,7 @@
 export const SITE = {
   name: "Room Booking Platform",
   /** PLACEHOLDER — swap for the real studio name if different. */
-  tagline: "Content rooms, podcast suites, and conference rooms — by the hour.",
+  tagline: "Content rooms, podcast suites, and conference rooms, by the hour.",
 
   /** PLACEHOLDER contact details — replace with real ones before launch. */
   contactEmail: "hello@yourstudio.example",
