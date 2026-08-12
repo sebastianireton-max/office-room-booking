@@ -4,6 +4,27 @@
 
 ## Design skill — reference on every prompt touching UI
 
+**Start here: `.agents/skills/design-verified/SKILL.md`** (symlinked at
+`.claude/skills/design-verified`). It merges the eight design packs into one
+document, resolves the places where they contradict each other (serif choice,
+Inter, eyebrow count, corner radius, centered heroes, motion), and makes
+verification mandatory instead of optional. Where it disagrees with a source
+pack, it governs; fix a bad ruling there rather than reaching past it.
+
+Its verifier is real and runs against the live app:
+
+```bash
+npm run dev -- --port 3002
+npm run design:verify -- --base http://localhost:3002
+```
+
+That checks contrast, horizontal scroll at 390px, em-dashes, eyebrow budget,
+CTA wrapping, nav height, and tap targets, and writes full-page screenshots
+plus a report to `.design-audit/` (gitignored). Non-zero exit on failure.
+Do not tick a mechanical checkbox by eye when the script can check it.
+
+The source packs below remain on disk, unmodified, for reference.
+
 `.agents/skills/design-taste-frontend/SKILL.md` (symlinked at
 `.claude/skills/design-taste-frontend`) is a standing reference for any
 prompt that touches this app's frontend — read it before making visual/UX

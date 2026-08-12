@@ -121,15 +121,31 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 
 ## 6. Design/Figma state
 
-- **Code is the source of truth.** The Figma file
-  (`LlgUu20D5khynwb0ilOKBa`) predates the light-editorial restyle AND the
-  build-out — it still shows the old dark/violet direction and is missing
-  Room Card + all screens (its build was cut off by Figma's MCP rate limit:
-  View seat on Starter plan = 6 calls/month).
-- **After the owner upgrades** (Full or Dev seat on Pro+): push the current
-  code state INTO Figma — tokens from `globals.css` (they're structured to
-  map to Figma variables), components, and the full page set. Do not
-  "reconcile" code back toward the stale Figma file.
+- **Code is still the source of truth.** Figma is now a mirror of it, not a
+  competing spec. Never "reconcile" code back toward Figma; push code into
+  Figma when they drift.
+- **Synced 2026-08-12** (seat is now Full on Pro, so the old Starter-plan
+  rate limit no longer applies). The file `LlgUu20D5khynwb0ilOKBa` now
+  matches the shipped light-editorial code:
+  - Primitives repointed to the warm neutral ramp + coral family + `cream`;
+    the five `accent-violet/*` variables were verified unreferenced and
+    removed. All 23 semantic Color variables alias the same primitives
+    `globals.css` does, and the missing `color/text/on-success` was added.
+  - Text styles moved to Fraunces for Display/Heading and Inter for
+    Body/Label, at the sizes and tracking actually used in `page.tsx`.
+    Added `Display/Hero Italic`, `Heading/H2 Italic`, and `Eyebrow` for the
+    lowercase-italic + CAPS headline pattern. Note Fraunces' Figma style
+    string is `SemiBold` (no space), unlike Inter's `Semi Bold`.
+  - **Room Card** component built (it was the one component the original
+    build never reached).
+  - All three pages are populated: Homepage (hero, room grid with all six
+    rooms, how-it-works, FAQ teaser, closing CTA, footer), Room Detail
+    (identity hero, photo placeholder, marketing copy, made-for chips,
+    equipment, embedded booking step 1), and Checkout Flow (step 2 details,
+    step 3 payment).
+- Figma deliberately mirrors the shipped `· Booked` slot wording, including
+  the known mislabel bug (§8 item 1). Do not "fix" copy in Figma that has
+  not shipped in code — that recreates the drift this sync just removed.
 - Subagents: `.claude/agents/design-auditor.md` (visual/WCAG passes; knows
   the skill packs in `.agents/skills/`) and `security-auditor.md`.
   `CLAUDE.md` scopes the design-taste skills honestly: marketing pages yes,
@@ -150,16 +166,26 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 
 ## 8. Next steps, in priority order
 
-1. **Stripe test keys + real payment test** (§4) — the one untested leg.
-2. **Deploy** (Vercel is the natural fit) — webhooks need a public URL.
-   Remember: SQLite won't survive serverless; do #3 first or deploy to a
+1. **Fix the "Booked" slot mislabel.** `listAvailableSlots`
+   (`src/lib/db/bookings-repository.ts:149`) returns `available: false` for any
+   slot earlier than now + `minBookingNoticeHours` (2h,
+   `src/types/domain.ts:73`), and `TimeSlotChip.tsx:34` labels every
+   unavailable slot `· Booked`. So past and too-soon slots read as booked on
+   every room page, every day: an empty studio looks fully booked all morning.
+   Needs a third state ("Past" / "Too soon") distinct from genuinely booked.
+   Found by rendering the page, not by reading the code.
+2. **Stripe test keys + real payment test** (§4) — the one untested leg.
+3. **Deploy** (Vercel is the natural fit) — webhooks need a public URL.
+   Remember: SQLite won't survive serverless; do #4 first or deploy to a
    single persistent instance initially.
-3. **Prisma + Postgres migration** (schema already written; swap the
+4. **Prisma + Postgres migration** (schema already written; swap the
    repository functions).
-4. **Committed Playwright test suite** — flows are browser-verified but ad
-   hoc; port to `@playwright/test` incl. the double-booking race and webhook
+5. **Committed Playwright test suite.** `@playwright/test` is now installed
+   and there is a working harness at
+   `.agents/skills/design-verified/verify.mjs` (`npm run design:verify`), but
+   it only covers *visual/a11y* checks. The functional suite is still to do:
+   the booking flow end to end, the double-booking race, and the webhook
    handler with signed test payloads.
-5. **Figma export after seat upgrade** (§6).
 6. When real content exists: testimonials section, membership/events pages —
    currently excluded on purpose (no fabricated social proof or offers).
 
