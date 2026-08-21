@@ -49,3 +49,32 @@ Also available at `.agents/skills/`: `high-end-visual-design`, `minimalist-ui`,
 `industrial-brutalist-ui`, `stitch-design-taste`, `gpt-taste`, `brandkit`,
 `redesign-existing-projects` (audit-first framing), and the `ponytail`
 family (YAGNI/minimal-code discipline — applies repo-wide, not just UI).
+
+## Shared memory and conventions (GBrain)
+
+This machine runs a local GBrain brain — agent memory shared across every
+project here. It is already installed and wired as an MCP server for this repo;
+nothing to install.
+
+**Read these before starting work.** They are project-independent and live in
+the Universal Obsidian vault at `C:\Users\sebas\Obsidian\Universal`:
+
+- `Conventions/Security rules.md` — what must never be stored, and why
+- `Conventions/Working agreements.md` — verification and measurement habits
+- `Skills/Skill routing.md` — which skill to pull for which job
+- `Tools/Tool inventory.md` — MCP servers, CLIs, runtimes
+
+**Brain usage**
+- Recall before assuming: the brain holds decisions and findings from prior
+  sessions, so check it rather than re-deriving.
+- `gbrain remember "<fact>"` to persist something durable.
+- Anything saved is **readable by every agent connected to this brain**. Use
+  `visibility:"private"` for local-only facts.
+
+**Never ingest into the brain**: API keys, tokens, customer PII, or raw session
+transcripts. Store references to where a secret lives, never its value.
+Aggregates and findings are fine; rows about real people are not.
+
+**Embeddings**: configured as `openai:text-embedding-3-small` (1024 dims).
+Needs `OPENAI_API_KEY` set, then `gbrain embed --stale`. Do not revert to
+`zeroentropyai:zembed-1` — that provider shuts down 2026-09-04.
