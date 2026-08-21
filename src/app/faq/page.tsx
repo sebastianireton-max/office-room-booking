@@ -6,7 +6,7 @@ import { BOOKING_CONFIG } from "@/types/domain";
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Hours, booking holds, equipment, payment, and what happens after you book — answered.",
+    "Hours, booking holds, equipment, payment, and what happens after you book, answered.",
 };
 
 /** Every answer below is grounded in how the app actually works (operating
@@ -24,13 +24,13 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Is my time slot reserved while I check out?",
-    a: "Yes. The moment you enter your details, the slot is held for you while you complete payment — nobody else can book it out from under you. If you don't finish checking out, the hold expires and the slot opens back up automatically.",
+    a: "Yes. The moment you enter your details, the slot is held for you while you complete payment. Nobody else can book it out from under you. If you don't finish checking out, the hold expires and the slot opens back up automatically.",
   },
   {
     q: "What equipment is included?",
     a: (
       <>
-        Every room&apos;s full equipment list is on its page — what you see listed is included in the
+        Every room&apos;s full equipment list is on its page. What you see listed is included in the
         hourly rate, already set up when you arrive. Browse the rooms from the{" "}
         <Link href="/#rooms" className="font-medium text-text-accent hover:underline">
           homepage
@@ -49,7 +49,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "Do I need an account?",
-    a: "No. Checkout is guest-only — name, email, and an optional phone number. Your email gets the confirmation.",
+    a: "No. Checkout is guest-only: name, email, and an optional phone number. Your email gets the confirmation.",
   },
   {
     q: "What happens after I book?",
@@ -70,7 +70,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "How many people can each room hold?",
-    a: "It varies by room — from 2 (the compact content and podcast studios) up to 10 (The Boardroom). Each room's page and the pricing table list its capacity.",
+    a: "It varies by room, from 2 (the compact content and podcast studios) up to 10 (The Boardroom). Each room's page and the pricing table list its capacity.",
   },
 ];
 
@@ -79,8 +79,8 @@ export default function FaqPage() {
     <main className="flex-1 px-6 py-14">
       <div className="mx-auto flex max-w-3xl flex-col gap-10">
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium uppercase tracking-[2px] text-text-accent">FAQ</p>
-          <h1 className="font-display text-5xl font-medium tracking-[-0.5px] text-text-primary">
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">FAQ</p>
+          <h1 className="font-display text-5xl font-medium tracking-[-0.014em] text-text-primary">
             <span className="lowercase italic">asked &amp;</span>{" "}
             <span className="uppercase">ANSWERED.</span>
           </h1>
@@ -102,7 +102,7 @@ export default function FaqPage() {
           </p>
           <Link
             href="/contact"
-            className="rounded-token-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+            className="inline-flex min-h-11 items-center rounded-token-full bg-accent px-5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
           >
             Get in touch
           </Link>

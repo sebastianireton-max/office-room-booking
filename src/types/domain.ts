@@ -57,6 +57,13 @@ export interface TimeSlot {
   startTime: string;
   endTime: string;
   available: boolean;
+  /**
+   * WHY the slot is unavailable, when it is. "booked" means someone else has
+   * it; "too-soon" means it is in the past or inside the minimum-notice
+   * window. Collapsing both into `available: false` made empty studios read
+   * as fully booked every morning — the chip label needs to tell them apart.
+   */
+  unavailableReason?: "booked" | "too-soon";
 }
 
 export const ROOM_TYPE_LABELS: Record<RoomType, string> = {

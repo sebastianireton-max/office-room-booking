@@ -62,7 +62,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
       <main className="flex flex-1 items-center justify-center px-6 py-24">
         <div className="flex max-w-md flex-col items-center gap-3 text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-accent" />
-          <p className="text-text-secondary">Processing your payment — don&apos;t close this window.</p>
+          <p className="text-text-secondary">Processing your payment. Don&apos;t close this window.</p>
         </div>
       </main>
     );
@@ -90,7 +90,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
         <div className="flex max-w-md flex-col items-center gap-3 text-center">
           <h1 className="text-2xl font-semibold text-text-primary">Something went wrong</h1>
           <p className="text-text-secondary">
-            Something went wrong saving your booking. Your card has not been charged — please try again, or
+            Something went wrong saving your booking. Your card has not been charged. Please try again, or
             contact us with reference #{bookingId}.
           </p>
           <Button href="/" className="mt-2">
@@ -107,7 +107,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success text-2xl text-on-success">
           ✓
         </div>
-        <h1 className="text-3xl font-semibold tracking-[-0.5px] text-text-primary">You&apos;re booked!</h1>
+        <h1 className="text-3xl font-semibold tracking-[-0.014em] text-text-primary">You&apos;re booked!</h1>
         <p className="text-text-secondary">
           {room.name} · {formatDateLong(booking.date)} · {formatTime12h(booking.startTime)}–
           {formatTime12h(booking.endTime)}
@@ -122,7 +122,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
             <Button
               variant="secondary"
               href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-                `${room.name} — Booking Confirmation`
+                `${room.name} · Booking Confirmation`
               )}&dates=${booking.date.replaceAll("-", "")}T${booking.startTime.replace(
                 ":",
                 ""
@@ -134,7 +134,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
             <Button
               variant="secondary"
               href={`https://outlook.live.com/calendar/0/deeplink/compose?path=%2Fcalendar%2Faction%2Fcompose&rru=addevent&subject=${encodeURIComponent(
-                `${room.name} — Booking Confirmation`
+                `${room.name} · Booking Confirmation`
               )}`}
               className="flex-1"
             >

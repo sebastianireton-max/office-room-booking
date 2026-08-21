@@ -3,26 +3,46 @@ import { ROOMS } from "@/lib/rooms-data";
 import { RoomCard } from "@/components/RoomCard";
 import { Button } from "@/components/Button";
 import { SITE } from "@/lib/site-config";
-import { BOOKING_CONFIG } from "@/types/domain";
+import { BOOKING_CONFIG, ROOM_TYPE_LABELS } from "@/types/domain";
+import type { RoomType } from "@/types/domain";
 import { formatUsdPerHour } from "@/lib/format";
 
 const HOW_IT_WORKS = [
   {
     step: "01",
     title: "Pick your room",
-    body: "Six rooms, three ways to work: content, podcast, or conference. Every room lists exactly what's included before you commit.",
+    body: "Every room lists exactly what's included before you commit. No surprises when you walk in.",
   },
   {
     step: "02",
     title: "Book your slot",
-    body: `Choose an exact date and time, ${SITE.hours.open}–${SITE.hours.close}. Your slot is held while you check out, and payment is handled securely by Stripe.`,
+    body: `Choose an exact date and time, ${SITE.hours.open} to ${SITE.hours.close}. Your slot is held while you check out, and payment is handled securely by Stripe.`,
   },
   {
     step: "03",
-    title: "Show up & create",
+    title: "Show up and create",
     body: "You'll get a confirmation with add-to-calendar links for Google, Outlook, or Apple. The room and its gear are ready when you are.",
   },
 ];
+
+/* The room grid used to be six structurally identical cards in one 3x2 block,
+   which read as "six interchangeable boxes" and made someone hunting for a
+   podcast room parse all six. Grouping by type keeps every room a peer (no
+   invented "featured" hierarchy) while giving the scroll a rhythm and letting
+   a visitor skip straight to the type they came for. */
+const TYPE_ORDER: RoomType[] = ["content", "podcast", "conference"];
+
+const TYPE_BLURB: Record<RoomType, string> = {
+  content: "Backdrops, lighting, and mics already standing. Walk in and shoot.",
+  podcast: "Broadcast mics, multi-cam, and acoustic treatment on the walls.",
+  conference: "A screen, a tracking camera, and a network that holds up on a call.",
+};
+
+const TYPE_DOT: Record<RoomType, string> = {
+  content: "bg-accent",
+  podcast: "bg-info",
+  conference: "bg-warning",
+};
 
 export default function HomePage() {
   const activeRooms = ROOMS.filter((r) => r.active);
@@ -57,31 +77,27 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      {/* Hero — design package Section 6.1. Held to the four text elements the
-          design-verified skill allows (eyebrow, headline, subtext, CTAs); the
-          supporting proof lives in its own band directly below, not in here. */}
-      <section className="px-6 pt-20 pb-16 sm:pt-24 sm:pb-20">
+      {/* Hero — design package Section 6.1. The headline is now the brand line
+          itself: the name is a pun that needs teaching exactly once, and the
+          existing lowercase-italic + CAPS pattern does that teaching for free.
+          No eyebrow here on purpose — the previous one ("On-demand rooms,
+          ready when you are") only restated the headline, and dropping it
+          leaves the budget for the one eyebrow that carries a real fact. */}
+      <section className="px-6 pt-16 pb-16 sm:pt-24 sm:pb-24">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 text-center">
-          <p className="text-sm font-medium uppercase tracking-[2px] text-text-accent">
-            On-demand rooms, ready when you are
-          </p>
-          <h1 className="font-display text-5xl font-medium tracking-[-0.5px] text-text-primary sm:text-7xl">
-            <span className="lowercase italic">your room is</span>{" "}
-            <span className="uppercase">READY.</span>
-            <br />
-            <span className="lowercase italic">show up &amp;</span>{" "}
+          <h1 className="font-display text-5xl font-medium tracking-[-0.02em] text-text-primary sm:text-7xl">
+            <span className="lowercase italic">show up.</span>{" "}
+            <span className="lowercase italic">clock in.</span>{" "}
             <span className="uppercase">CREATE.</span>
           </h1>
-          <p className="max-w-2xl text-lg text-text-secondary">
-            Content rooms, podcast suites, and conference rooms, available by the hour.
-          </p>
+          <p className="max-w-2xl text-lg text-text-secondary">{SITE.tagline}</p>
           <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
             <Button href="#rooms" variant="primary">
               Check availability
             </Button>
             <Link
               href="/pricing"
-              className="rounded-token-full px-6 py-3 text-base font-medium text-text-primary underline underline-offset-4 transition-colors hover:text-text-accent"
+              className="inline-flex min-h-11 items-center rounded-token-full px-6 text-base font-medium text-text-primary underline underline-offset-4 transition-colors hover:text-text-accent"
             >
               See all rates
             </Link>
@@ -102,7 +118,7 @@ export default function HomePage() {
               {/* Reserve two lines from the 2-up breakpoint onward: "Instant
                   confirmation" wraps where the others do not, and without the
                   reserve the descriptions sit on mismatched baselines. */}
-              <dt className="font-display text-2xl font-medium tracking-[-0.3px] text-text-primary sm:min-h-[3.6rem]">
+              <dt className="font-display text-2xl font-medium tracking-[-0.01em] text-text-primary sm:min-h-[3.6rem]">
                 {fact.value}
               </dt>
               <dd className="text-sm leading-relaxed text-text-secondary">{fact.body}</dd>
@@ -111,71 +127,78 @@ export default function HomePage() {
         </dl>
       </section>
 
-      {/* Room grid — design package Section 6.1 */}
+      {/* Room grid, grouped by type — design package Section 6.1 */}
       <section id="rooms" className="px-6 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10 flex flex-col gap-2">
-            <p className="text-sm font-medium uppercase tracking-[2px] text-text-accent">Our Rooms</p>
-            <h2 className="font-display text-4xl font-medium tracking-[-0.5px] text-text-primary">
-              <span className="lowercase italic">six rooms,</span>{" "}
-              <span className="uppercase">THREE WAYS TO WORK.</span>
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 place-items-center gap-8 sm:grid-cols-2 sm:place-items-stretch lg:grid-cols-3">
-            {activeRooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
-            ))}
+          <h2 className="mb-12 font-display text-4xl font-medium tracking-[-0.014em] text-text-primary">
+            <span className="lowercase italic">six rooms,</span>{" "}
+            <span className="uppercase">THREE WAYS TO WORK.</span>
+          </h2>
+
+          <div className="flex flex-col gap-14">
+            {TYPE_ORDER.map((type) => {
+              const rooms = activeRooms.filter((r) => r.type === type);
+              if (rooms.length === 0) return null;
+              return (
+                <div key={type}>
+                  <div className="mb-6 flex flex-col gap-1 border-t border-border-default pt-5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8">
+                    <h3 className="flex items-center gap-2.5 font-display text-2xl font-medium lowercase italic text-text-primary">
+                      <span className={`h-2.5 w-2.5 rounded-full ${TYPE_DOT[type]}`} aria-hidden="true" />
+                      {ROOM_TYPE_LABELS[type]}
+                    </h3>
+                    <p className="max-w-md text-sm text-text-secondary sm:text-right">{TYPE_BLURB[type]}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+                    {rooms.map((room) => (
+                      <RoomCard key={room.id} room={room} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
+      {/* How it works. Deliberately NOT the three-equal-column feature row it
+          used to be: heading left, steps as a hairline-divided list right. Same
+          content, but the page stops repeating the proof band's rhythm. */}
       <section className="border-t border-border-subtle bg-surface px-6 py-16 sm:py-24">
-        <div className="mx-auto max-w-6xl">
-          {/* No eyebrow here on purpose: with six sections the skill allows two
-              eyebrows, and the headline already names the section. */}
-          <div className="mb-10 flex flex-col gap-2">
-            <h2 className="font-display text-4xl font-medium tracking-[-0.5px] text-text-primary">
-              <span className="lowercase italic">three steps,</span>{" "}
-              <span className="uppercase">THEN YOU&apos;RE IN.</span>
-            </h2>
-          </div>
-          <div className="grid gap-10 sm:grid-cols-3">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-20">
+          <h2 className="font-display text-4xl font-medium tracking-[-0.014em] text-text-primary">
+            <span className="lowercase italic">three steps,</span>{" "}
+            <span className="uppercase">THEN YOU&apos;RE IN.</span>
+          </h2>
+          <ol className="flex flex-col">
             {HOW_IT_WORKS.map((item) => (
-              <div key={item.step} className="flex flex-col gap-3">
-                <span className="font-display text-5xl italic text-text-accent" aria-hidden="true">
+              <li
+                key={item.step}
+                className="flex flex-col gap-2 border-t border-border-subtle py-6 first:border-t-0 first:pt-0 sm:flex-row sm:gap-8"
+              >
+                <span
+                  className="font-display text-3xl italic leading-none text-text-accent sm:w-16 sm:shrink-0"
+                  aria-hidden="true"
+                >
                   {item.step}
                 </span>
-                <h3 className="text-lg font-semibold text-text-primary">{item.title}</h3>
-                <p className="text-sm leading-relaxed text-text-secondary">{item.body}</p>
-              </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-lg font-semibold text-text-primary">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-text-secondary">{item.body}</p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      {/* FAQ teaser */}
+      {/* Closing band. This was two stacked full-bleed bands (an FAQ teaser and
+          a CTA) doing near-identical jobs back to back, splitting attention at
+          the exact moment the page should end on one instruction. Merged: one
+          primary action, with the FAQ demoted to the secondary link it always
+          was. */}
       <section className="border-t border-border-subtle px-6 py-16 sm:py-24">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div className="flex flex-col gap-2">
-            <h2 className="font-display text-3xl font-medium text-text-primary">
-              <span className="lowercase italic">questions?</span>{" "}
-              <span className="uppercase">WE WROTE THEM DOWN.</span>
-            </h2>
-            <p className="text-base text-text-secondary">
-              Hours, holds, gear, what happens after you pay: the short version of everything.
-            </p>
-          </div>
-          <Button href="/faq" variant="primary">
-            Read the FAQ
-          </Button>
-        </div>
-      </section>
-
-      {/* Closing CTA band */}
-      <section className="border-t border-border-subtle bg-surface px-6 py-20 sm:py-28">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
-          <h2 className="font-display text-4xl font-medium tracking-[-0.5px] text-text-primary sm:text-5xl">
+          <h2 className="font-display text-4xl font-medium tracking-[-0.014em] text-text-primary sm:text-5xl">
             <span className="lowercase italic">the room is ready</span>{" "}
             <span className="uppercase">WHEN YOU ARE.</span>
           </h2>
@@ -183,12 +206,20 @@ export default function HomePage() {
             Book by the hour, {SITE.hours.open}–{SITE.hours.close}, {SITE.hours.days}. No memberships, no
             minimums.
           </p>
-          <Link
-            href="/#rooms"
-            className="rounded-token-full bg-accent px-8 py-3.5 text-base font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
-          >
-            Browse the rooms
-          </Link>
+          <div className="mt-2 flex flex-col items-center gap-3 sm:flex-row">
+            <Link
+              href="/#rooms"
+              className="inline-flex min-h-11 items-center rounded-token-full bg-accent px-8 text-base font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
+            >
+              Browse the rooms
+            </Link>
+            <Link
+              href="/faq"
+              className="inline-flex min-h-11 items-center rounded-token-full px-6 text-base font-medium text-text-primary underline underline-offset-4 transition-colors hover:text-text-accent"
+            >
+              Read the FAQ
+            </Link>
+          </div>
         </div>
       </section>
     </main>

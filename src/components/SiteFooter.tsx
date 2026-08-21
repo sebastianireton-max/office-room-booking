@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Wordmark } from "@/components/Wordmark";
 import { SITE } from "@/lib/site-config";
 import { ROOMS } from "@/lib/rooms-data";
 
@@ -7,9 +8,7 @@ export function SiteFooter() {
     <footer className="border-t border-border-subtle bg-surface">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-3">
-          <p className="font-display text-lg lowercase italic text-text-primary">
-            {SITE.name.toLowerCase()}
-          </p>
+          <Wordmark className="text-lg" />
           <p className="text-sm leading-relaxed text-text-secondary">{SITE.tagline}</p>
           <p className="text-sm text-text-secondary">
             Open {SITE.hours.open}–{SITE.hours.close}, {SITE.hours.days}

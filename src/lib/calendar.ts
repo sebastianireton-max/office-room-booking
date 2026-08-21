@@ -13,7 +13,7 @@ function parts(date: string, time: string): [number, number, number, number, num
 export function generateIcs(booking: Booking, room: Room): string {
   const event: EventAttributes = {
     uid: booking.calendarEventUid,
-    title: `${room.name} — Booking Confirmation`,
+    title: `${room.name} · Booking Confirmation`,
     description: `Your booking at ${room.name}. Reference #${booking.id}. Questions? Reply to this email.`,
     start: parts(booking.date, booking.startTime),
     end: parts(booking.date, booking.endTime),
@@ -38,7 +38,7 @@ function toGoogleDate(date: string, time: string): string {
 export function googleCalendarUrl(booking: Booking, room: Room): string {
   const params = new URLSearchParams({
     action: "TEMPLATE",
-    text: `${room.name} — Booking Confirmation`,
+    text: `${room.name} · Booking Confirmation`,
     dates: `${toGoogleDate(booking.date, booking.startTime)}/${toGoogleDate(
       booking.date,
       booking.endTime
@@ -55,7 +55,7 @@ export function outlookCalendarUrl(booking: Booking, room: Room): string {
   const params = new URLSearchParams({
     path: "/calendar/action/compose",
     rru: "addevent",
-    subject: `${room.name} — Booking Confirmation`,
+    subject: `${room.name} · Booking Confirmation`,
     startdt,
     enddt,
     body: `Your booking at ${room.name}. Reference #${booking.id}.`,

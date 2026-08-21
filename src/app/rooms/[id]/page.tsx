@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRoomById, ROOMS } from "@/lib/rooms-data";
+import { SITE } from "@/lib/site-config";
+import Image from "next/image";
 import { RoomTypeBadge } from "@/components/RoomTypeBadge";
 import { RoomCard } from "@/components/RoomCard";
 import { formatUsdPerHour } from "@/lib/format";
@@ -15,7 +17,7 @@ export async function generateMetadata(props: PageProps<"/rooms/[id]">): Promise
   const room = getRoomById(id);
   if (!room) return {};
   return {
-    title: `${room.name} — Room Booking Platform`,
+    title: `${room.name} · ${SITE.name}`,
     description: `${room.tagline} ${room.description}`,
   };
 }
@@ -37,26 +39,31 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
       <section className="border-b border-border-subtle px-6 pb-12 pt-14">
         <div className="mx-auto flex max-w-6xl flex-col gap-4">
           <RoomTypeBadge type={room.type} />
-          <h1 className="font-display text-5xl font-medium lowercase italic tracking-[-0.5px] text-text-primary sm:text-6xl">
+          <h1 className="font-display text-5xl font-medium lowercase italic tracking-[-0.014em] text-text-primary sm:text-6xl">
             {room.name}
           </h1>
           <p className="max-w-2xl font-display text-2xl text-text-secondary">{room.tagline}</p>
-          <p className="text-sm font-medium uppercase tracking-[2px] text-text-secondary">
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-secondary">
             {room.capacity} people · {room.sqft} sq ft · from {formatUsdPerHour(room.hourlyRateCents)}
           </p>
         </div>
       </section>
 
       <div className="px-6 py-12">
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[1.1fr_1fr]">
-          <div className="flex flex-col gap-8">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG */}
-            <img
-              src={`/rooms/${room.id}.svg`}
-              alt={`${room.name} — room photo placeholder`}
-              className="aspect-[8/5] w-full rounded-token-lg object-cover shadow-[var(--shadow-subtle)]"
+        <div className="mx-auto max-w-6xl">
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-token-lg shadow-[var(--shadow-subtle)]">
+            <Image
+              src={`/rooms/art/${room.id}.webp`}
+              alt={`Illustration of ${room.name}: ${room.description}`}
+              fill
+              priority
+              sizes="(max-width: 1152px) 100vw, 1152px"
+              className="object-cover"
             />
+          </div>
 
+          <div className="mt-10 grid gap-10 lg:grid-cols-[1.1fr_1fr]">
+          <div className="order-2 flex flex-col gap-8 lg:order-1">
             <div className="flex flex-col gap-3">
               <h2 className="font-display text-2xl font-medium text-text-primary">
                 <span className="lowercase italic">the</span>{" "}
@@ -98,8 +105,9 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
             </div>
           </div>
 
-          <div id="book" className="lg:sticky lg:top-24 lg:self-start">
+          <div id="book" className="order-1 scroll-mt-24 lg:order-2 lg:sticky lg:top-24 lg:self-start">
             <BookingFlow room={room} />
+          </div>
           </div>
         </div>
       </div>
@@ -112,7 +120,7 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
               <span className="lowercase italic">not quite right?</span>{" "}
               <span className="uppercase">TRY THESE.</span>
             </h2>
-            <div className="grid grid-cols-1 place-items-center gap-8 sm:grid-cols-2 sm:place-items-stretch lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               {otherRooms.map((r) => (
                 <RoomCard key={r.id} room={r} />
               ))}

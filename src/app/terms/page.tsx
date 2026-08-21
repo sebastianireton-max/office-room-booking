@@ -15,10 +15,10 @@ export default function TermsPage() {
     <main className="flex-1 px-6 py-14">
       <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium uppercase tracking-[2px] text-text-accent">Legal</p>
-          <h1 className="font-display text-4xl font-medium tracking-[-0.5px] text-text-primary">Terms of Service</h1>
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">Legal</p>
+          <h1 className="font-display text-4xl font-medium tracking-[-0.014em] text-text-primary">Terms of Service</h1>
           <p className="rounded-token-md border border-dashed border-border-default bg-surface px-4 py-3 text-sm text-text-secondary">
-            Draft — review before launch. Sections that depend on business decisions not yet made
+            Draft: review before launch. Sections that depend on business decisions not yet made
             (cancellation terms, liability specifics) are marked below rather than filled with invented
             terms.
           </p>
@@ -38,7 +38,7 @@ export default function TermsPage() {
           <h2 className="text-lg font-semibold text-text-primary">Payment</h2>
           <p className="text-base leading-relaxed text-text-secondary">
             All payments are processed by Stripe at the time of booking. The total shown at checkout is
-            the full price — there are no additional fees. We never store your card details on our
+            the full price. There are no additional fees. We never store your card details on our
             servers.
           </p>
         </section>
@@ -55,7 +55,7 @@ export default function TermsPage() {
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold text-text-primary">Cancellations &amp; changes</h2>
           <p className="rounded-token-md border border-dashed border-border-default bg-surface px-4 py-3 text-sm text-text-secondary">
-            Placeholder — the cancellation and rescheduling policy is being finalized. Until it&apos;s
+            Placeholder: the cancellation and rescheduling policy is being finalized. Until it&apos;s
             posted here, <Link href="/contact" className="font-medium text-text-accent hover:underline">contact us</Link> about
             any booking changes.
           </p>

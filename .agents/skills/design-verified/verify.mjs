@@ -211,7 +211,18 @@ function auditInPage() {
   // The em-dash ban is absolute. The en-dash is only a violation when used as a
   // prose separator; between digits ("8:00 AM-10:00 PM") it is correct range
   // typography, so those are not reported.
-  const bodyText = document.body.innerText || "";
+  // <head> counts as shipped copy: titles show in the browser tab and meta
+  // descriptions show in search results and social shares. Scanning only
+  // document.body let em-dashes hide there indefinitely.
+  const headText = [
+    document.title || "",
+    document.querySelector('meta[name="description"]')?.content || "",
+    document.querySelector('meta[property="og:title"]')?.content || "",
+    document.querySelector('meta[property="og:description"]')?.content || "",
+  ]
+    .filter(Boolean)
+    .join("  |  ");
+  const bodyText = [document.body.innerText || "", headText].join(String.fromCharCode(10));
   for (const ch of ["—", "–"]) {
     let idx = bodyText.indexOf(ch);
     while (idx !== -1 && findings.emDashes.length < 40) {

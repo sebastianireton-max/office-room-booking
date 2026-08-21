@@ -15,10 +15,10 @@ export default function PrivacyPage() {
     <main className="flex-1 px-6 py-14">
       <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium uppercase tracking-[2px] text-text-accent">Legal</p>
-          <h1 className="font-display text-4xl font-medium tracking-[-0.5px] text-text-primary">Privacy Policy</h1>
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">Legal</p>
+          <h1 className="font-display text-4xl font-medium tracking-[-0.014em] text-text-primary">Privacy Policy</h1>
           <p className="rounded-token-md border border-dashed border-border-default bg-surface px-4 py-3 text-sm text-text-secondary">
-            Draft — review before launch. This describes what the site actually collects today; it must
+            Draft: review before launch. This describes what the site actually collects today; it must
             be updated if analytics, marketing email, or customer accounts are added.
           </p>
         </div>
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold text-text-primary">What we collect</h2>
           <p className="text-base leading-relaxed text-text-secondary">
             When you book a room we collect your name, email address, an optional phone number, and your
-            booking details (room, date, time). That&apos;s the entire list — there are no accounts, no
+            booking details (room, date, time). That&apos;s the entire list. There are no accounts, no
             tracking pixels, and no advertising analytics on this site.
           </p>
         </section>
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold text-text-primary">What we never see</h2>
           <p className="text-base leading-relaxed text-text-secondary">
-            Your payment card details. Payment is handled entirely by Stripe — card information goes
+            Your payment card details. Payment is handled entirely by Stripe. Card information goes
             directly from your browser to Stripe and never touches our servers. Stripe&apos;s own privacy
             policy governs that data.
           </p>

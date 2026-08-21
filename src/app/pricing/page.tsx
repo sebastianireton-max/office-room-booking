@@ -8,7 +8,7 @@ import { SITE } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Straightforward hourly rates for every room. The price you see is the price you pay — no fees, no memberships, no minimums.",
+    "Straightforward hourly rates for every room. The price you see is the price you pay. No fees, no memberships, no minimums.",
 };
 
 /** Rates are read straight from the room catalog — the same data the booking
@@ -20,14 +20,14 @@ export default function PricingPage() {
     <main className="flex-1 px-6 py-14">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium uppercase tracking-[2px] text-text-accent">Pricing</p>
-          <h1 className="font-display text-5xl font-medium tracking-[-0.5px] text-text-primary">
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">Pricing</p>
+          <h1 className="font-display text-5xl font-medium tracking-[-0.014em] text-text-primary">
             <span className="lowercase italic">by the hour,</span>{" "}
             <span className="uppercase">NOTHING HIDDEN.</span>
           </h1>
           <p className="max-w-2xl text-base text-text-secondary">
             Every room is booked by the hour, {SITE.hours.open}–{SITE.hours.close}, {SITE.hours.days}. The
-            total below is exactly what you pay at checkout — no cleaning fees, no service fees, no
+            total below is exactly what you pay at checkout. No cleaning fees, no service fees, no
             membership required.
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function PricingPage() {
                   <td className="py-4 pr-4 text-sm text-text-secondary">{formatUsd(room.hourlyRateCents * 3)}</td>
                   <td className="py-4">
                     <Link
-                      href={`/rooms/${room.id}`}
+                      href={`/rooms/${room.id}#book`}
                       className="rounded-token-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
                     >
                       Book
@@ -97,7 +97,7 @@ export default function PricingPage() {
         </div>
 
         <p className="text-sm text-text-secondary">
-          Every booking includes the room&apos;s full equipment list — see each room&apos;s page for exactly
+          Every booking includes the room&apos;s full equipment list. See each room&apos;s page for exactly
           what&apos;s inside. Payment is processed securely by Stripe at the time of booking.
         </p>
       </div>

@@ -147,10 +147,16 @@ export function listAvailableSlots(
     const endTime = toHHMM(end);
 
     if (isToday && start < earliestMinutesToday) {
-      slots.push({ startTime, endTime, available: false });
+      slots.push({ startTime, endTime, available: false, unavailableReason: "too-soon" });
       continue;
     }
-    slots.push({ startTime, endTime, available: isRangeFree(roomId, date, startTime, endTime) });
+    const free = isRangeFree(roomId, date, startTime, endTime);
+    slots.push({
+      startTime,
+      endTime,
+      available: free,
+      ...(free ? {} : { unavailableReason: "booked" as const }),
+    });
   }
   return slots;
 }

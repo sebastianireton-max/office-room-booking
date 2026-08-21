@@ -13,7 +13,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: {
     default: SITE.name,
-    template: `%s — ${SITE.name}`,
+    template: `%s · ${SITE.name}`,
   },
   description: SITE.tagline,
 };

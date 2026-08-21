@@ -172,19 +172,22 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 4. Cancellation policy — `/faq` and `/terms` honestly say "being finalized";
    decide terms, then replace those blocks.
 5. Review `/terms` + `/privacy` drafts (counsel recommended).
-6. Site name — "Room Booking Platform" throughout is itself a placeholder;
-   real brand name swaps in via `site-config.ts` + metadata.
+6. ~~Site name~~ — DONE (2026-08-20). The brand is **Clockroom**, set in
+   `site-config.ts` and flowing to every title/metadata surface. Tagline:
+   "Show up. Clock in. Create." The wordmark is `src/components/Wordmark.tsx`
+   (typography, not an image) and the square mark is `src/app/icon.svg`.
+   NOTE: the name has only had an informal collision spot-check. Run a real
+   USPTO / state-registry / domain search before printing anything.
 
 ## 8. Next steps, in priority order
 
-1. **Fix the "Booked" slot mislabel.** `listAvailableSlots`
-   (`src/lib/db/bookings-repository.ts:149`) returns `available: false` for any
-   slot earlier than now + `minBookingNoticeHours` (2h,
-   `src/types/domain.ts:73`), and `TimeSlotChip.tsx:34` labels every
-   unavailable slot `· Booked`. So past and too-soon slots read as booked on
-   every room page, every day: an empty studio looks fully booked all morning.
-   Needs a third state ("Past" / "Too soon") distinct from genuinely booked.
-   Found by rendering the page, not by reading the code.
+1. ~~Fix the "Booked" slot mislabel.~~ DONE (2026-08-20). `TimeSlot` now
+   carries `unavailableReason: "booked" | "too-soon"`, set at the single place
+   in `listAvailableSlots` that knows the difference; too-soon slots label
+   `· Closed` and the booking widget states the notice rule once above the
+   grid ("Same-day bookings need 2 hours' notice... They are not booked.")
+   instead of stamping a reason on ten chips. `available` itself is computed
+   by the same unchanged `isRangeFree` call, so no booking logic moved.
 2. **Stripe test keys + real payment test** (§4) — the one untested leg.
 3. **Deploy** (Vercel is the natural fit) — webhooks need a public URL.
    Remember: SQLite won't survive serverless; do #4 first or deploy to a

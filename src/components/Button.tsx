@@ -5,7 +5,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
  * Mirrors the Figma Button component (node 6:20): Style × State variants.
  * "State" here is handled by native CSS (:hover, :disabled) rather than a
  * separate prop, since in code hover is a real interaction, not a static
- * variant to choose. Default background uses the corrected accent-violet/600
+ * variant to choose. Default background uses the corrected accent (coral) 600 fill
  * — design package Section 8.3.
  */
 

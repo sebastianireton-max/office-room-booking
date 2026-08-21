@@ -33,7 +33,7 @@ function InnerPaymentForm({ booking }: { booking: Booking }) {
       setError(
         submitError.type === "card_error" || submitError.type === "validation_error"
           ? submitError.message ?? "Payment declined. Your card was declined by your bank. Try a different card or contact your bank."
-          : "Something went wrong saving your booking. Your card has not been charged — please try again."
+          : "Something went wrong saving your booking. Your card has not been charged. Please try again."
       );
       setSubmitting(false);
       return;
@@ -56,7 +56,7 @@ function InnerPaymentForm({ booking }: { booking: Booking }) {
         </p>
       )}
       <Button type="submit" disabled={!stripe || submitting} className="w-full">
-        {submitting ? "Processing your payment — don't close this window…" : "Confirm & Pay"}
+        {submitting ? "Processing your payment, don't close this window…" : "Confirm & Pay"}
       </Button>
     </form>
   );
@@ -69,8 +69,8 @@ export function PaymentStep({ booking, clientSecret }: { booking: Booking; clien
         <p className="font-medium text-text-primary">Stripe isn&apos;t connected yet.</p>
         <p>
           Add <code className="text-text-accent">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and{" "}
-          <code className="text-text-accent">STRIPE_SECRET_KEY</code> to your own <code>.env.local</code> — see
-          the README — to enable real payments. This screen will render the Stripe Payment Element automatically
+          <code className="text-text-accent">STRIPE_SECRET_KEY</code> to your own <code>.env.local</code> (see
+          the README) to enable real payments. This screen will render the Stripe Payment Element automatically
           once both keys are set.
         </p>
       </div>

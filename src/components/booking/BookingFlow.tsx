@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StepIndicator } from "@/components/StepIndicator";
 import { TimeSlotChip } from "@/components/TimeSlotChip";
+import { BOOKING_CONFIG } from "@/types/domain";
 import { InputField } from "@/components/InputField";
 import { Button } from "@/components/Button";
 import { PaymentStep } from "./PaymentStep";
@@ -134,7 +135,7 @@ export function BookingFlow({ room }: { room: Room }) {
       setStepIndex(2);
       await createPaymentIntent(data.booking.id);
     } catch {
-      setHoldError("Something went wrong saving your booking. Your card has not been charged — please try again.");
+      setHoldError("Something went wrong saving your booking. Your card has not been charged. Please try again.");
     } finally {
       setCreatingHold(false);
     }
@@ -225,14 +226,25 @@ export function BookingFlow({ room }: { room: Room }) {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text-primary">Pick a date and time that works for you.</span>
+            <span className="text-sm font-medium text-text-primary">Time</span>
+            {/* Say the notice rule once, here, rather than stamping a reason
+                onto every closed chip. Before this, same-day mornings showed a
+                wall of slots that all read "Booked" on a completely empty
+                studio, because the too-soon and genuinely-sold cases shared one
+                label. */}
+            {!loadingSlots && !slotsError && slots.some((s) => s.unavailableReason === "too-soon") && (
+              <p className="text-sm text-text-secondary">
+                Same-day bookings need {BOOKING_CONFIG.minBookingNoticeHours} hours&apos; notice, so earlier
+                times show as closed. They are not booked.
+              </p>
+            )}
             {loadingSlots && <p className="text-sm text-text-secondary">Checking availability…</p>}
             {slotsError && <p className="text-sm text-error">{slotsError}</p>}
             {!loadingSlots && !slotsError && availableCount === 0 && (
               <p className="text-sm text-text-secondary">No open slots on this day. Try another date.</p>
             )}
             {!loadingSlots && !slotsError && availableCount > 0 && (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-3 gap-2">
                 {slots.map((slot) => (
                   <TimeSlotChip
                     key={slot.startTime}
@@ -244,6 +256,7 @@ export function BookingFlow({ room }: { room: Room }) {
                         ? "selected"
                         : "available"
                     }
+                    unavailableReason={slot.unavailableReason}
                     onClick={() => slot.available && setSelectedStart(slot.startTime)}
                   />
                 ))}
@@ -308,7 +321,7 @@ export function BookingFlow({ room }: { room: Room }) {
           {booking && clientSecret && <PaymentStep booking={booking} clientSecret={clientSecret} />}
           {booking && !clientSecret && !creatingIntent && !paymentIntentError && (
             <p className="text-sm text-text-secondary">
-              Stripe isn&apos;t connected yet — add your keys to see the live payment form here. See the README.
+              Stripe isn&apos;t connected yet. Add your keys to see the live payment form here. See the README.
             </p>
           )}
         </div>

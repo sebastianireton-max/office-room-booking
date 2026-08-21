@@ -6,9 +6,10 @@
  * codebase hardcodes these.
  */
 export const SITE = {
-  name: "Room Booking Platform",
-  /** PLACEHOLDER — swap for the real studio name if different. */
-  tagline: "Content rooms, podcast suites, and conference rooms, by the hour.",
+  name: "Clockroom",
+  /** The name is a pun that needs teaching exactly once; the tagline does it. */
+  tagline: "Content rooms, podcast suites, and conference rooms, booked by the hour.",
+  wordmarkTagline: "Show up. Clock in. Create.",
 
   /** PLACEHOLDER contact details — replace with real ones before launch. */
   contactEmail: "hello@yourstudio.example",
@@ -33,4 +34,4 @@ export const SITE = {
 } as const;
 
 export const PLACEHOLDER_NOTE =
-  "Placeholder — the owner supplies the real details before launch.";
+  "Placeholder: the owner supplies the real details before launch.";

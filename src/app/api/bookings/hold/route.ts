@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
     console.error("createHold failed", err);
     return NextResponse.json(
-      { error: "Something went wrong saving your booking. Your card has not been charged — please try again." },
+      { error: "Something went wrong saving your booking. Your card has not been charged. Please try again." },
       { status: 500 }
     );
   }

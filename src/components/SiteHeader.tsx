@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SITE } from "@/lib/site-config";
+import { Wordmark } from "@/components/Wordmark";
 
 const NAV = [
   { href: "/#rooms", label: "Rooms" },
@@ -16,16 +16,21 @@ const NAV = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  /* On a room page the booking widget is already rendered at #book. Sending
+     "Book a room" to the homepage grid from there walks the visitor backwards
+     out of the one page where they are closest to converting. */
+  const bookHref = pathname.startsWith("/rooms/") ? "#book" : "/#rooms";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-canvas/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link
-          href="/"
-          className="font-display text-lg lowercase italic tracking-[-0.25px] text-text-primary"
-          onClick={() => setOpen(false)}
-        >
-          {SITE.name.toLowerCase()}
+        <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
+            <rect width="32" height="32" rx="8" fill="var(--neutral-50)" />
+            <path d="M16 16 L23 9" stroke="var(--accent-coral-500)" strokeWidth="3.2" strokeLinecap="round" />
+            <circle cx="16" cy="16" r="2.1" fill="var(--cream)" />
+          </svg>
+          <Wordmark className="text-lg" />
         </Link>
 
         {/* Desktop nav */}
@@ -42,8 +47,8 @@ export function SiteHeader() {
             </Link>
           ))}
           <Link
-            href="/#rooms"
-            className="rounded-token-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
+            href={bookHref}
+            className="inline-flex min-h-11 items-center rounded-token-full bg-accent px-5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
           >
             Book a room
           </Link>
@@ -89,7 +94,7 @@ export function SiteHeader() {
             ))}
             <li className="pt-3">
               <Link
-                href="/#rooms"
+                href={bookHref}
                 className="block rounded-token-full bg-accent px-5 py-3 text-center text-base font-semibold text-on-accent"
                 onClick={() => setOpen(false)}
               >

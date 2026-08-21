@@ -11,7 +11,7 @@ const dotColor: Record<RoomType, string> = {
 
 export function RoomTypeBadge({ type }: { type: RoomType }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-token-full bg-surface-raised px-3 py-1 text-xs font-medium tracking-[0.3px] text-text-primary">
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-token-full border border-border-default bg-surface-raised px-3 py-1 text-xs font-medium tracking-[0.02em] text-text-primary">
       <span className={`h-2 w-2 rounded-full ${dotColor[type]}`} aria-hidden="true" />
       {ROOM_TYPE_LABELS[type]}
     </span>
