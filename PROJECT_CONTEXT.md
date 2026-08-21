@@ -124,6 +124,41 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 - **Code is still the source of truth.** Figma is now a mirror of it, not a
   competing spec. Never "reconcile" code back toward Figma; push code into
   Figma when they drift.
+- **Re-synced 2026-08-21** to the Clockroom rebrand. Both pages updated:
+  - Wordmark: all 20 `room booking platform` text nodes are now the `clockROOM`
+    lockup (Fraunces `SemiBold Italic` for "clock", `SemiBold` for "ROOM"), and
+    a `Logo` auto-layout was inserted in all ten screen headers carrying the
+    square mark as an SVG node tree. Footer copyright reads "© Clockroom".
+  - Homepage rebuilt to match code: hero headline is now the brand line
+    ("show up. clock in. CREATE."), the hero and "Our Rooms" eyebrows are gone,
+    the room grid is grouped into Content/Podcast/Conference pairs with ruled
+    headers, "How it works" is heading-left + hairline step list, and the FAQ
+    teaser band was merged into the closing band as a secondary link.
+  - Room Type Badge component variants gained the 1px `border-default` stroke
+    (the 1.15:1 fix), which propagates to every instance.
+  - Room artwork applied to all six cards plus the room-detail hero.
+  - Slot chips read `· Closed`, and the room detail screen carries the
+    two-hour-notice line, mirroring the §8.1 fix.
+
+  **Three gotchas worth keeping:**
+  1. **Upload PNG, never WEBP.** `upload_assets` accepts `image/webp`, returns
+     `success: true` and a real `imageHash` — and then the renderer never
+     decodes it. Every fill rendered blank, including the uploader's own temp
+     frames. PNG works. Re-converted from `public/rooms/art/*.webp`.
+  2. **`get_metadata` with no nodeId under-reports this file's pages** — it
+     lists only `Foundations & Components`. Both pages are really there; list
+     them with a read-only `use_figma` (`figma.root.children`) instead.
+  3. The uploaded originals are parked in a frame named
+     `Room artwork — source (do not delete)` at x≈16400 on the prototype page,
+     off to the right of the screens. It keeps the image blobs referenced and
+     gives a designer the source art.
+
+  **Known remaining drift (Figma behind code, not fixed this pass):** the
+  Room Detail screen still stacks the booking widget below the marketing copy
+  and has no "not quite right? TRY THESE." cross-sell row; code has copy-left /
+  sticky-widget-right on desktop and a cross-sell rail. Pre-existing, called out
+  rather than silently left.
+
 - **Synced 2026-08-12** (seat is now Full on Pro, so the old Starter-plan
   rate limit no longer applies). The file `LlgUu20D5khynwb0ilOKBa` now
   matches the shipped light-editorial code:
