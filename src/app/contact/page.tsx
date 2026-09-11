@@ -13,7 +13,7 @@ export default function ContactPage() {
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">Contact</p>
           <h1 className="font-display text-5xl font-medium tracking-[-0.014em] text-text-primary">
-            <span className="lowercase italic">say</span> <span className="uppercase">HELLO.</span>
+            <span className="font-normal lowercase">say</span> <span className="font-extrabold uppercase">HELLO.</span>
           </h1>
           <p className="max-w-xl text-base text-text-secondary">
             Questions about a room, changes to an existing booking, or something the FAQ didn&apos;t

@@ -20,6 +20,17 @@ export interface Room {
   tagline: string;
   marketingDescription: string;
   idealFor: string[];
+  /** B-roll slots (added 2026-08-31). Both optional and both absent today:
+   * no footage has been shot, and the standing rule is that nothing may depict
+   * a space that does not exist as shown, so these stay empty until the owner
+   * supplies real clips. Every media surface on the site already renders
+   * through `MediaSlot`, which falls back to the room's illustration, so
+   * filling these in is a data change here and nothing else.
+   *   reel  — one silent, loopable hero clip: `/rooms/video/<id>.mp4`
+   *   clips — 2 to 4 short detail shots for the "in the room" strip
+   */
+  reel?: string;
+  clips?: string[];
 }
 
 export type BookingStatus =

@@ -81,8 +81,8 @@ export default function FaqPage() {
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">FAQ</p>
           <h1 className="font-display text-5xl font-medium tracking-[-0.014em] text-text-primary">
-            <span className="lowercase italic">asked &amp;</span>{" "}
-            <span className="uppercase">ANSWERED.</span>
+            <span className="font-normal lowercase">asked &amp;</span>{" "}
+            <span className="font-extrabold uppercase">ANSWERED.</span>
           </h1>
         </div>
 
@@ -96,7 +96,7 @@ export default function FaqPage() {
         </dl>
 
         <div className="flex flex-col items-start gap-3 rounded-token-lg bg-surface p-6 shadow-[var(--shadow-subtle)]">
-          <p className="font-display text-xl lowercase italic text-text-primary">still wondering something?</p>
+          <p className="font-display text-xl lowercase text-text-primary">still wondering something?</p>
           <p className="text-sm text-text-secondary">
             We&apos;d rather answer a question than lose a booking over it.
           </p>

@@ -3,11 +3,13 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SITE } from "@/lib/site-config";
 // Self-hosted variable fonts (bundled in node_modules, no runtime fetch to
-// Google's CDN needed at build time) — see PROJECT_CONTEXT.md for why this
-// was chosen over next/font/google. Fraunces is the editorial display serif
-// for headlines (restyle 2026-08-07); Inter stays as the body sans.
-import "@fontsource-variable/inter";
-import "@fontsource-variable/fraunces";
+// Google's CDN at build time). That decision predates the overhaul and is kept;
+// only the faces changed. Bricolage Grotesque is the display grotesque and
+// Geist the body sans (overhaul 2026-08-30); Geist Mono carries tabular
+// figures for times, durations, and prices.
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
+import "@fontsource-variable/bricolage-grotesque";
 import "./globals.css";
 
 export const metadata: Metadata = {

@@ -10,9 +10,13 @@ picking up a trigger) runs its subagents. The specialists live in
 Subagent reports are claims, not facts. Before treating any subagent's work as
 finished, verified, or ready to push:
 
-- **Independently re-run the build** — `npx tsc --noEmit && npm run build &&
+- **Independently re-run the build** — `npm run build && npx tsc --noEmit &&
   npm run lint` yourself, from a clean `.next`, rather than trusting a
-  "verified" line in a report.
+  "verified" line in a report. **Build first, then typecheck.** Next 16
+  generates `PageProps` / `LayoutProps` / `RouteContext` into `.next/types`
+  during the build, so after `rm -rf .next` a leading `tsc --noEmit` always
+  fails with `Cannot find name 'PageProps'`. That is a missing codegen step,
+  not a type error in your diff.
 - **Read the actual diff** (`git show`/`git diff`), not the agent's summary of
   it. Summaries describe intent; diffs show what happened.
 - **Recompute checkable claims.** A contrast ratio, a rate, a count — if an
@@ -59,16 +63,44 @@ review stage after you.
    things say so honestly ("policy being finalized — contact us").
 4. **Personalized details stay obvious placeholders** (`site-config.ts`,
    founder story, room photos) until the owner supplies the real ones.
-5. **Code is the design source of truth, not Figma**, until the post-upgrade
-   Figma export happens (PROJECT_CONTEXT.md §6). Never "reconcile" code back
-   toward the stale dark/violet Figma file.
+5. **Code is the design source of truth, not Figma.** Figma is a mirror and is
+   pushed to from code (PROJECT_CONTEXT.md §6, last synced 2026-08-30). Never
+   "reconcile" code back toward Figma; where they drift, code wins.
 6. **Don't touch `data/*.db`** — real booking data once live keys exist.
-7. **Contrast discipline**: white text needs the 600-level accent fill, never
-   the 500 display accent. Compute ratios for any new color pairing.
+7. **Contrast discipline**: compute ratios for any new color pairing, always.
+   Do not memorise the rule — it has now flipped twice, once per substrate:
+
+   | Substrate | Accent | Text on an accent fill |
+   |---|---|---|
+   | cream (Aug 07) | dark coral | **white** |
+   | warm-black (Aug 30) | bright ember | **near-black** |
+   | warm-paper (Aug 31, current) | dark teal | **white** again |
+
+   Current values: near-white on `teal-600` measures 5.25:1 and passes;
+   near-black on it measures 3.02:1 and fails. Body-size accent TEXT uses
+   `teal-700` (6.75:1), not `teal-600` (4.87:1). Same care for the status
+   fills. Never carry a contrast rule across a substrate change: recompute.
+
+   The accent shipped burnt orange for a few hours on Aug 31 before the owner
+   replaced it with teal. The reason is worth keeping: the six room
+   illustrations are drawn in coral, so a warm accent left every control
+   sharing a hue with the artwork behind it. **Check a new accent against the
+   imagery, not only against the background.**
+
+   **Two traps this project has actually hit**, both of which survive a token
+   swap silently because neither is a token:
+   - **`opacity-NN` is not a colour.** It multiplies against whatever ground
+     the new substrate provides. `opacity-45` on the time slot chips read fine
+     on near-black and landed at ~2.0:1 on paper. Use explicit disabled tokens.
+   - **Stripe Elements renders cross-origin.** `PaymentStep.tsx`'s `appearance`
+     object takes literal hexes and cannot see this document's custom
+     properties. It must be re-checked by hand on every palette change, and it
+     is a payment surface, so guardrail 2 applies to touching it.
 
 ## Verification loop (the standard pass, in order)
 
-1. `rm -rf .next && npx tsc --noEmit && npm run build && npm run lint`
+1. `rm -rf .next && npm run build && npx tsc --noEmit && npm run lint`
+   (build first — it generates the route types `tsc` needs; see above)
 2. `npm audit` if `package.json` changed; grep `.next/static` for
    `sk_live|sk_test` if anything Stripe-adjacent changed.
 3. Dev server + Chromium screenshots, 390px then desktop, for anything visual.

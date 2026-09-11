@@ -15,8 +15,8 @@ export default function AboutPage() {
         <div className="flex flex-col gap-4">
           <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">About</p>
           <h1 className="font-display text-5xl font-medium tracking-[-0.014em] text-text-primary">
-            <span className="lowercase italic">rooms that</span>{" "}
-            <span className="uppercase">WORK AS HARD AS YOU DO.</span>
+            <span className="font-normal lowercase">rooms that</span>{" "}
+            <span className="font-extrabold uppercase">WORK AS HARD AS YOU DO.</span>
           </h1>
           <p className="text-lg leading-relaxed text-text-secondary">
             This space runs on one belief: the hardest part of making something shouldn&apos;t be finding
@@ -37,7 +37,7 @@ export default function AboutPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
             Placeholder: your story goes here
           </p>
-          <p className="font-display text-2xl lowercase italic text-text-primary">the part only you can write</p>
+          <p className="font-display text-2xl lowercase text-text-primary">the part only you can write</p>
           <p className="text-sm leading-relaxed text-text-secondary">
             Who built this space, why, and for whom, in your own words. A paragraph or two about the
             people behind the rooms, with a photo, turns this page from a brochure into a reason to book
@@ -47,8 +47,8 @@ export default function AboutPage() {
 
         <div className="flex flex-col items-start gap-4">
           <h2 className="font-display text-3xl font-medium text-text-primary">
-            <span className="lowercase italic">come see</span>{" "}
-            <span className="uppercase">FOR YOURSELF.</span>
+            <span className="font-normal lowercase">come see</span>{" "}
+            <span className="font-extrabold uppercase">FOR YOURSELF.</span>
           </h2>
           <Link
             href="/#rooms"

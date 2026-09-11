@@ -1,103 +1,142 @@
 @import "tailwindcss";
 
 /*
- * Design tokens — mirrors the Figma file exactly (file key LlgUu20D5khynwb0ilOKBa).
- * Primitives -> Semantics -> Tailwind theme, same three-layer structure as Figma.
- * See the delivered design package, Section 4, for the source of truth.
+ * Design tokens. Primitives -> Semantics -> Tailwind theme (three layers; only
+ * the values and the substrate change between restyles).
  *
- * NOTE: color/bg/accent (default) and color/border/default were shifted from the
- * original Figma values per the Accessibility fixes in Section 8.3-8.4 of the
- * design package (verified WCAG 2.1 AA contrast fixes). Figma should be updated
- * to match these corrected values when screen work resumes there.
+ * RESTYLE 2026-08-31 — owner-requested palette change: "Warm sun / analog
+ * film". The site moves from the warm-black + ember substrate (2026-08-30) to
+ * a sunwashed light one: warm paper canvas, a single deep-teal accent, and a
+ * film-grain emulsion over the whole page. (The accent shipped burnt orange
+ * for a few hours the same day; the owner replaced it because the room
+ * illustrations are coral and the controls disappeared into them.)
+ *
+ * PACK: still Awwwards Premium (design-verified Section 3), which permits
+ * "OLED black OR warm cream, one accent". Only the substrate arm changed, so
+ * the radius system (10/18/28 + pill CTAs) and the type system (Bricolage
+ * Grotesque display + Geist body + Geist Mono figures) are unchanged and are
+ * NOT to be mixed with another pack's.
+ *
+ * Section 2.1's Fraunces grandfather clause was already overridden by the
+ * owner on 2026-08-30 and stays overridden. Do not "restore" Fraunces, and do
+ * not restore the ember/warm-black values this file replaces.
+ *
+ * ############ CONTRAST RULE RE-INVERTED. READ BEFORE TOUCHING COLOR ########
+ * This is the THIRD substrate this project has shipped, and the rule for text
+ * on an accent fill has now flipped twice:
+ *
+ *   cream substrate (Aug 07)       accent is dark   -> WHITE text on the fill
+ *   warm-black substrate (Aug 30)  accent is bright -> NEAR-BLACK text on it
+ *   warm-paper substrate (Aug 31)  accent is dark   -> WHITE text on the fill
+ *
+ * Current: near-white on teal-600 = 5.25:1 passes; near-black on it = 3.02:1
+ * fails. Body-size accent TEXT uses teal-700 (6.75:1), never teal-600.
+ *
+ * So --color-text-on-accent is near-WHITE again. Never carry a contrast rule
+ * across a substrate change; recompute. Every ratio in this file was computed,
+ * not estimated (ORCHESTRATION.md guardrail 7).
+ * ##########################################################################
  */
 
 :root {
-  /* Native form controls (date-picker chrome, scrollbars) should match the
-     app's theme. RESTYLE 2026-08-07: the whole site moved from the original
-     dark theme to a light editorial direction (owner-requested, styled after
-     a studio-rental reference site: warm light neutrals, coral accent,
-     display-serif headlines). This is deliberate — don't "restore" the dark
-     theme or the violet accent in a future consistency pass; the Figma file
-     and design package predate this and should be updated to match the code,
-     not the reverse. */
+  /* Native form controls (date-picker chrome, scrollbars) must match the
+     substrate, or the booking flow's date input renders as a dark slab. */
   color-scheme: light;
 
   /* ---- Primitives ---- */
-  /* Warm neutral ramp (dark -> light). Scale direction unchanged from the
-     original system (0 = darkest), so tokens like text-on-success that
-     reference the dark end keep working unmodified. */
-  --neutral-0: #171513;
-  --neutral-50: #1c1a18;
-  --neutral-100: #262320;
-  --neutral-200: #33302c;
-  --neutral-300: #4a453f;
-  --neutral-400: #5f5b54;
-  --neutral-500: #7a746c;
-  --neutral-600: #9b948b;
-  --neutral-700: #c8c2b9;
-  --neutral-800: #e7e2db;
-  --neutral-900: #f2efea;
-  --neutral-1000: #ffffff;
-  --cream: #faf8f6;
+  /* Warm neutral ramp, dark -> light. Scale direction is unchanged across all
+     three substrates (0 = darkest), so only the semantic layer below flips. */
+  --neutral-0: #191512;
+  --neutral-50: #221e1a;
+  --neutral-100: #38322b;
+  --neutral-200: #4e463c;
+  --neutral-300: #6b6259;
+  --neutral-400: #8b8175;
+  --neutral-500: #a99e90;
+  --neutral-600: #c6baa8;
+  --neutral-700: #e3dacb;
+  --neutral-800: #efe7d8;
+  --neutral-900: #f7f1e6;
+  --neutral-1000: #fdfaf4;
 
-  /* Coral accent family. 500 is the display accent (3.32:1 on cream — passes
-     the 3:1 large-text/graphics floor, NOT body-text-safe). 600 is the
-     interactive fill: white text on it measures 5.11:1 (AA). Same discipline
-     as the old violet-500/600 split — don't put white body text on 500. */
-  --accent-coral-300: #ffb4a6;
-  --accent-coral-400: #f4715f;
-  --accent-coral-500: #f0523d;
-  --accent-coral-600: #c93a20;
-  --accent-coral-700: #a92f18;
+  /* Teal accent. Replaced the burnt-orange "sun" ramp on owner request
+     (2026-08-31, same day): the six room illustrations are drawn in coral and
+     salmon, so a warm orange accent doubled down on the artwork's own hue and
+     the controls dissolved into the pictures. Teal is the complement, so the
+     paper stays warm, the illustrations keep the warm end of the page to
+     themselves, and every interactive element separates from them by hue
+     rather than by luminance alone. One hue for the whole site
+     (Section 4.3: one accent per page).
+     Measured on canvas (#f7f1e6):
+       - teal-600 as a FILL, near-white label  = 5.25:1  (AA body)
+       - teal-700 as a FILL, near-white label  = 7.28:1  (AA body, hover)
+       - teal-700 as TEXT on canvas            = 6.75:1  (AA body)
+       - teal-600 as TEXT on canvas            = 4.87:1  (AA body, tight)
+       - NEAR-BLACK on teal-600                = 3.02:1  <-- FAILS. Never.
+     Interactive fills therefore carry --color-text-on-accent, which is
+     near-white. Body-size accent TEXT uses teal-700, not teal-600. */
+  --accent-teal-300: #7fd4c6; /* wash/tint only — never text          */
+  --accent-teal-400: #2aa393; /* wash/tint, and the mark on ink       */
+  --accent-teal-500: #12857a; /* large text (>=24px) only             */
+  --accent-teal-600: #0f766e; /* fill + focus ring                    */
+  --accent-teal-700: #115e59; /* body-size accent text, fill hover    */
 
-  /* Status colors, tuned for text/fills on LIGHT backgrounds (the originals
-     were tuned for the dark theme; #ff4d4f error text on cream measured well
-     under 4.5:1). */
-  --status-success: #34c77b;
-  --status-warning: #9a6a00;
-  --status-error: #d92d20;
-  --status-info: #1d6fc9;
+  /* Status colors, retuned for the paper substrate. The dark set was tuned to
+     sit BRIGHT on near-black and every one of them measured under 2:1 here.
+     Verified as a fill carrying a near-white label, and as text on canvas.
+     NOTE: info moved off teal when teal became the accent. Two things that
+     mean different things must not share a colour. */
+  --status-success: #157f4c; /* label 4.83:1 · as text 4.48:1 */
+  --status-warning: #9a6300; /* label 4.85:1 · as text 4.49:1 */
+  --status-error: #b3261e; /* label 6.27:1 · as text 5.81:1 */
+  --status-info: #2c5581; /* label 7.40:1 · as text 6.86:1 */
 
   /* ---- Semantics ---- */
-  --color-bg-canvas: var(--cream);
+  /* Canvas is the warmer, deeper paper; surface is the lighter sheet laid on
+     it. Neither is pure #ffffff (Section 4.3 bans it), and the 1.08:1 step
+     between them is deliberately faint — separation is carried by the hairline
+     rules and the shadows, not by a grey step. */
+  --color-bg-canvas: var(--neutral-900);
   --color-bg-surface: var(--neutral-1000);
-  --color-bg-surface-raised: var(--neutral-900);
-  --color-bg-surface-light: var(--neutral-1000);
+  --color-bg-surface-raised: var(--neutral-800);
+  --color-bg-surface-light: var(--neutral-800);
 
-  --color-text-primary: var(--neutral-50);
-  --color-text-secondary: var(--neutral-400); /* 6.36:1 on cream */
-  --color-text-on-light: var(--neutral-50);
-  --color-text-on-light-secondary: var(--neutral-400);
+  --color-text-primary: var(--neutral-50); /* 14.72:1 canvas · 15.89:1 surface */
+  --color-text-secondary: var(--neutral-300); /*  5.31:1 canvas ·  5.73:1 surface */
+  /* "on-light" means "on a bright fill" (accent/status). On this substrate the
+     accent fill is DARK, so these are the near-white pair. The name is kept
+     because component call sites use it and it is mirrored in Figma. */
+  --color-text-on-light: var(--neutral-1000);
+  --color-text-on-light-secondary: var(--neutral-700);
 
-  /* Non-text borders need >= 3:1 against their background (same rule the old
-     dark theme's border fix enforced). neutral-500 on cream measures ~3.3:1. */
-  --color-border-default: var(--neutral-500);
-  --color-border-subtle: var(--neutral-800);
+  /* Non-text borders need >= 3:1 against their background. neutral-400
+     measures 3.40:1 on canvas, 3.67:1 on surface and 3.11:1 on surface-raised,
+     so it clears on all three. Everything lighter fails: neutral-500 tops out
+     at 2.53:1. border-subtle is a decorative hairline only, no floor. */
+  --color-border-default: var(--neutral-400);
+  --color-border-subtle: var(--neutral-700);
 
-  /* White text requires the 600 fill (5.11:1) — never the 500 display accent
-     (3.51:1, fails AA). Mirrors the old violet-500/600 fix exactly. */
-  --color-bg-accent: var(--accent-coral-600);
-  --color-bg-accent-hover: var(--accent-coral-700);
-  --color-text-accent: var(--accent-coral-600); /* 4.88:1 on cream — AA text */
-  --color-border-accent: var(--accent-coral-500);
+  --color-bg-accent: var(--accent-teal-600);
+  --color-bg-accent-hover: var(--accent-teal-700);
+  --color-text-accent: var(--accent-teal-700); /* 6.75:1 on canvas */
+  --color-border-accent: var(--accent-teal-600); /* 4.87:1 on canvas, focus ring */
+  /* Near-WHITE, not near-black. See the re-inversion banner above. */
   --color-text-on-accent: var(--neutral-1000);
 
-  --color-bg-live: var(--accent-coral-600);
-  --color-text-live: var(--accent-coral-600);
+  --color-bg-live: var(--accent-teal-600);
+  --color-text-live: var(--accent-teal-700);
 
   --color-bg-status-success: var(--status-success);
   --color-bg-status-warning: var(--status-warning);
   --color-bg-status-error: var(--status-error);
   --color-bg-status-info: var(--status-info);
-  --color-text-status-error: var(--status-error);
+  --color-text-status-error: var(--status-error); /* 5.81:1 on canvas */
 
-  /* FIX (design-auditor pass, 2026-08-06): white text/icons on status-success
-     (#34C77B) measured 2.19:1 — fails AA even at the relaxed 3:1 large-text/
-     graphics threshold, let alone 4.5:1. Was reusing --color-text-on-accent
-     (white), which is correctly tuned for the violet accent, not this green.
-     neutral/50 on this green measures 8.48:1. Use this token (not
-     text-on-accent) anywhere text/icons sit on a bg-success fill. */
-  --color-text-on-success: var(--neutral-50);
+  /* Text/icons sitting ON a bright status fill. Near-white measures 4.83:1 on
+     success, 4.85:1 on warning, 6.27:1 on error, 7.40:1 on info. Near-black
+     would fail all four here, which is the mirror image of the bug the
+     2026-08-30 pass fixed on the dark substrate. */
+  --color-text-on-success: var(--neutral-1000);
 
   /* ---- Spacing ---- */
   --spacing-2xs: 2px;
@@ -111,18 +150,35 @@
   --spacing-4xl: 96px;
 
   /* ---- Radius ---- */
+  /* Unchanged. Awwwards Premium radius system taken whole (design-verified
+     2.4: pick one pack's radius and never mix). */
   --radius-none: 0px;
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-sm: 10px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
   --radius-full: 999px;
 
   /* ---- Effects ---- */
-  /* Softened for the light theme — dark-theme shadow opacities read as harsh
-     smudges on cream. */
-  --shadow-subtle: 0 2px 8px 0 rgb(23 21 19 / 0.06);
-  --shadow-medium: 0 4px 16px 0 rgb(23 21 19 / 0.08), 0 1px 4px 0 rgb(23 21 19 / 0.05);
-  --shadow-strong: 0 12px 32px 0 rgb(23 21 19 / 0.12), 0 2px 8px 0 rgb(23 21 19 / 0.06);
+  /* On the dark substrate elevation had to be faked with surface lightness and
+     an inset top highlight, because drop shadows do not read on near-black.
+     On paper they read properly, so this is a real shadow system again. Every
+     shadow is tinted to the substrate hue (a warm brown), never pure black on
+     light — Section 4.3. */
+  --shadow-subtle: 0 1px 2px 0 rgb(90 66 40 / 0.05), 0 1px 3px 0 rgb(90 66 40 / 0.04);
+  --shadow-medium: 0 2px 4px -1px rgb(90 66 40 / 0.07), 0 12px 28px -8px rgb(90 66 40 / 0.13);
+  --shadow-strong: 0 4px 8px -2px rgb(90 66 40 / 0.09), 0 24px 56px -12px rgb(90 66 40 / 0.18);
+  /* Accent cast for the primary CTA only. Was --shadow-accent; renamed with the
+     palette so the token name cannot outlive the colour it describes. */
+  --shadow-accent: 0 8px 24px -8px rgb(15 118 110 / 0.38);
+
+  /* ---- Motion ---- */
+  /* MOTION_INTENSITY 6. Every duration and curve is a token so the reduced
+     motion collapse below is a single override, not a hunt through components. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 160ms;
+  --duration-base: 320ms;
+  --duration-slow: 640ms;
 }
 
 @theme inline {
@@ -155,10 +211,14 @@
   --color-error: var(--color-bg-status-error);
   --color-info: var(--color-bg-status-info);
 
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  /* Editorial display serif for headlines (restyle 2026-08-07). Use via the
-     `font-display` utility on headings; body copy stays on the sans. */
-  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  /* Geist for body and UI. Bricolage Grotesque for display: a variable
+     grotesque with real character at large sizes, which is what the pack asks
+     for, and not one of the two LLM-default display serifs the packs ban.
+     Geist Mono is used narrowly for tabular figures (times, durations, prices)
+     where digit alignment is functional, never as a decorative face. */
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Geist Variable", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, monospace;
 
   --radius-token-sm: var(--radius-sm);
   --radius-token-md: var(--radius-md);
@@ -169,16 +229,133 @@
 body {
   background: var(--color-bg-canvas);
   color: var(--color-text-primary);
-  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
   border-color: var(--color-border-default);
 }
 
-/* Visible focus indicator — required, design package Section 8.6 #2. Never remove
-   the outline without replacing it. */
+/* ---- Film grain -----------------------------------------------------------
+   The one texture in the system, and the reason the palette reads as film
+   stock rather than as a beige default theme. A single fixed emulsion layer
+   over the whole page: SVG fractal noise, desaturated, multiplied into the
+   paper. No image request, no library, no per-component work.
+
+   Effective darkening is about 3% (layer opacity 0.55 x rect opacity 0.055
+   under multiply), which is inside the rounding on every ratio recorded above;
+   the measured values stand, and they were re-measured in a real browser after
+   this was raised from 0.4, not assumed. The grain also dithers the wide
+   gradient in the hero, which is a second reason not to make it fainter.
+   It is pointer-events: none, and a pseudo-element
+   is not in the accessibility tree, so it needs no aria handling. It sits
+   above the sticky header on purpose: an emulsion that stops at the chrome
+   reads as a rendering bug rather than as a surface.
+
+   Removed outright under prefers-contrast: more, since a texture laid over
+   text is exactly what that preference asks to lose.
+   ------------------------------------------------------------------------- */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.055'/%3E%3C/svg%3E");
+}
+
+@media (prefers-contrast: more) {
+  body::after {
+    display: none;
+  }
+}
+
+/* Display face. Bricolage's optical-size axis is driven off the rendered size
+   so large headlines tighten rather than staying at body proportions. */
+.font-display {
+  font-variation-settings: "opsz" 48;
+  letter-spacing: -0.03em;
+}
+
+/* Tabular figures for anything a visitor compares down a column: prices,
+   durations, slot times. Functional, not decorative. */
+.tabular {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Visible focus indicator. Required, never removed without a replacement.
+   teal-600 measures 4.87:1 on canvas and 5.25:1 on surface, both clear of the
+   3:1 non-text floor, and the offset keeps it legible over the accent fill. */
 :focus-visible {
   outline: 2px solid var(--color-border-accent);
   outline-offset: 2px;
+}
+
+/* ---- Motion layer -------------------------------------------------------
+   MOTION_INTENSITY 6, and design-verified 2.6 requires that a claimed dial is
+   actually shipped. Each animation below is motivated in one line.
+
+   No library: there is no GSAP or Framer Motion in package.json, and CSS
+   scroll-driven animations cover reveal-on-enter natively. Nothing is animated
+   except transform and opacity (Section 5).
+   ------------------------------------------------------------------------- */
+
+/* Reveal: communicates section hierarchy as the page is read, so a visitor
+   registers one block at a time instead of a wall arriving at once.
+ *
+ * TRANSFORM ONLY, AND DELIBERATELY SO. The obvious version of this fades in
+ * from opacity 0. Do not reintroduce that. A `view()` timeline is INACTIVE
+ * whenever the document has no scroll range, and an inactive timeline holds
+ * the animation in its before-phase, which with `both` fill pins the element
+ * to the keyframe's start state. With opacity in the keyframe that renders
+ * the entire page blank. It is not a theoretical edge case: it blanked
+ * everything below the proof band on the first run of the 2026-08-30
+ * overhaul, it hits any viewport tall enough not to scroll, and it makes the
+ * verifier's own full-page screenshots unverifiable (they resize the viewport
+ * to the full document height, which removes the scroll range by
+ * construction).
+ *
+ * Restricting the keyframe to translate means the worst failure is a 16px
+ * offset. Motion can degrade; it must never hide content. */
+@keyframes reveal-up {
+  from {
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Applied via a class rather than a bare selector so nothing animates by
+   accident, and so server components stay server components. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal-up linear both;
+    animation-timeline: view();
+    /* Finish well before the element centres, or content reads as laggy. */
+    animation-range: entry 0% cover 22%;
+  }
+}
+
+/* Reduced motion is not dial-gated and not optional (design-verified 2.6).
+   Everything above collapses to its final state. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

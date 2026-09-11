@@ -22,8 +22,8 @@ export default function PricingPage() {
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium uppercase tracking-[0.14em] text-text-accent">Pricing</p>
           <h1 className="font-display text-5xl font-medium tracking-[-0.014em] text-text-primary">
-            <span className="lowercase italic">by the hour,</span>{" "}
-            <span className="uppercase">NOTHING HIDDEN.</span>
+            <span className="font-normal lowercase">by the hour,</span>{" "}
+            <span className="font-extrabold uppercase">NOTHING HIDDEN.</span>
           </h1>
           <p className="max-w-2xl text-base text-text-secondary">
             Every room is booked by the hour, {SITE.hours.open}–{SITE.hours.close}, {SITE.hours.days}. The
@@ -37,7 +37,7 @@ export default function PricingPage() {
           {rooms.map((room) => (
             <div key={room.id} className="flex flex-col gap-2 rounded-token-lg bg-surface p-5 shadow-[var(--shadow-subtle)]">
               <div className="flex items-baseline justify-between gap-3">
-                <Link href={`/rooms/${room.id}`} className="font-display text-xl lowercase italic text-text-primary">
+                <Link href={`/rooms/${room.id}`} className="font-display text-xl lowercase text-text-primary">
                   {room.name}
                 </Link>
                 <span className="text-base font-semibold text-text-primary">
@@ -73,7 +73,7 @@ export default function PricingPage() {
               {rooms.map((room) => (
                 <tr key={room.id} className="border-b border-border-subtle">
                   <td className="py-4 pr-4">
-                    <Link href={`/rooms/${room.id}`} className="font-display text-lg lowercase italic text-text-primary hover:text-text-accent">
+                    <Link href={`/rooms/${room.id}`} className="font-display text-lg lowercase text-text-primary hover:text-text-accent">
                       {room.name}
                     </Link>
                   </td>

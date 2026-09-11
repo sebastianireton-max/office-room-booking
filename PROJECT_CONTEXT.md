@@ -4,8 +4,8 @@
 session, another tool, or a human gets full context here without re-deriving
 any of it. `CLAUDE.md` imports this file, so Claude Code loads it automatically.
 
-Owner: thedreamgivers@icloud.com. Last rewritten: August 7, 2026 (supersedes the
-original August 6 handoff, which described the project pre-restyle and pre-build-out).
+Owner: thedreamgivers@icloud.com. Last rewritten: August 30, 2026 (supersedes the
+August 7 handoff, which described the site before the dark visual overhaul).
 
 Repo: https://github.com/sebastianireton-max/office-room-booking (branch `main`,
 pushed directly — no PR gate is established for this repo yet).
@@ -56,13 +56,82 @@ A complete, working studio-rental site — not just a booking funnel:
   Stripe PaymentIntent + signature-verified webhook confirmation,
   add-to-calendar (.ics/Google/Outlook) — all end-to-end verified except the
   real-payment leg (needs the owner's Stripe test keys; see §4).
-- **Design**: light editorial system — warm cream/neutral palette, coral
-  accent, Fraunces display serif + Inter body, lowercase-italic + CAPS
-  headline pattern. All tokens in `src/app/globals.css` (Primitives →
-  Semantics), so restyles are token swaps.
-- **Verified**: `npm run build` + `npm run lint` clean; browser-checked at
-  390px and 1440px (real Chromium via Playwright — mobile menu, pricing table
-  both layouts, no horizontal scroll at 390px, measured).
+- **Design**: **"Warm sun / analog film" — Awwwards Premium on a light
+  substrate** (owner-requested palette change, 2026-08-31, superseding the
+  Aug 30 dark overhaul, which superseded the Aug 7 light editorial direction).
+  Warm-paper canvas (`#f7f1e6`) with a lighter sheet (`#fdfaf4`) for bands and
+  cards, one **deep-teal** accent (`teal-600 #0f766e` fill / `teal-700 #115e59`
+  text), and a **film-grain emulsion**
+  over the whole page (one fixed `body::after`, inline SVG `feTurbulence`
+  multiplied at ~2% — no library, no image request, removed under
+  `prefers-contrast: more`).
+  Unchanged across the flip because the **pack did not change**, only its
+  substrate arm: Bricolage Grotesque display + Geist body + Geist Mono for
+  tabular figures, the weight-contrast headline pattern (light lowercase
+  against heavy caps), and radius 10/18/28 with pill CTAs. Shadows are real
+  again (they did not read on near-black) and tinted warm brown, never black.
+  All tokens still in `src/app/globals.css` (Primitives → Semantics).
+  **This still overrides design-verified §2.1**, which grandfathered Fraunces
+  as owner-approved; the owner chose the Aug 30 overhaul explicitly after being
+  told that was the cost. Do not "restore" Fraunces, cream, or coral.
+
+  **Contrast rule RE-inverted — do not memorise it, recompute it.** It has now
+  flipped once per substrate: cream → white on the fill; warm-black →
+  near-black on the fill; warm-paper → **white again** (near-white on
+  `teal-600` = 5.25:1; near-black on it = 3.02:1 and fails). Full table and the
+  two traps that survive a token swap silently (`opacity-NN`, and Stripe
+  Elements' cross-origin `appearance` object) are in ORCHESTRATION.md
+  guardrail 7.
+
+  **The accent was burnt orange for a few hours on Aug 31.** The owner replaced
+  it, and the reason generalises: the room illustrations are drawn in coral, so
+  a warm accent put every button in the same hue family as the artwork behind
+  it and the controls stopped reading as controls. Teal is the complement, so
+  the paper stays warm and the interface separates from the imagery by hue
+  rather than by luminance alone. `status-info` moved off teal onto `#2c5581`
+  at the same time: two things that mean different things must not share a
+  colour. Check any future accent against the *artwork*, not just the canvas.
+
+  Deleted rather than recoloured in this pass, because the light substrate
+  removed the reason each existed: the room-card/room-hero **inset artwork
+  plate** (it framed the cream illustrations so they would not punch a
+  light-mode hole through the dark page), and the **per-type colour dots** on
+  the room badges and homepage group headers (three category hues is three
+  accents on a one-accent page, §4.3, and §4.6 bans decorative status dots).
+  The hero's **soft gradient wash** went the same way: it is on the banned-tells
+  list (no generic startup gradients) and it was the one element on the page
+  whose purpose a visitor could not name. Scale and air replaced it.
+
+- **B-roll ready, 2026-08-31.** Owner asked for the site to show each room off
+  as a premium creator space, with places designed for video. Every media
+  surface now renders through **one component**, `src/components/MediaSlot.tsx`,
+  which resolves `video → still image → labelled slot` and pauses autoplaying
+  video under `prefers-reduced-motion`. `Room` gained two optional fields,
+  `reel` (one silent loopable hero clip) and `clips` (2 to 4 detail shots).
+  **Both are empty today and that is correct** — no footage has been shot and
+  nothing may depict a space that does not exist as shown. Filling them in is a
+  data edit in `src/lib/rooms-data.ts` and nothing else:
+  `public/rooms/video/<id>.mp4` for the reel, `<id>-01.mp4`… for the clips.
+  The room-detail "in the room" strip renders only when that room has clips, so
+  the site never shows empty labelled boxes to a visitor.
+
+- **Homepage room showcase rebuilt, 2026-08-31.** Six structurally identical
+  cards became asymmetric pairs on a 5-column grid, with the wide side
+  alternating down the page and tiles top-aligned so their natural heights
+  stagger. Each tile leads with the room's own tagline (real copy, already
+  grounded in its equipment list) and closes on a mono spec rail. `RoomCard`
+  still exists and is still correct for the compact 3-up cross-sell rail on
+  room pages; the two jobs are different and were deliberately not merged
+  behind a `variant` prop. Room detail gained a **full-bleed cinematic band**
+  outside the `max-w-6xl` container: the single biggest "expensive" lever on
+  that page, and it cost one wrapper.
+- **Verified 2026-08-31**: `npm run build`, `npx tsc --noEmit`, `npm run lint`
+  all clean; `npm run design:verify` **PASS** at 390px and 1440px across all
+  six audited routes. Measured in real Chromium, not eyeballed: no horizontal
+  scroll at either width, `color-scheme: light`, grain layer live
+  (`mix-blend-mode: multiply`, z 60), `CREATE.` 6.59:1, disabled slot chip
+  5.73:1 (was ~2.0:1 before the `opacity-45` fix), disabled Continue 4.86:1,
+  room badge 4.86:1.
 
 ## 3. Architecture (unchanged from original design, still true)
 
@@ -110,11 +179,25 @@ pass) plus runtime verification. Fixes landed, in order:
    `@stripe/stripe-js/pure`. (Found only by running the app — reading the
    gate logic looked correct.)
 
+`npm audit` (2026-08-30): **production tree 0 vulnerabilities**. Four high
+findings were open before this pass; three came from `prisma`, which sat in
+`dependencies` despite having zero imports in `src/` (the app runs on
+`node:sqlite`). npm's suggested "fix" was a *downgrade* to 6.12.0; instead
+`prisma` and `@prisma/client` moved to `devDependencies`, which removes them
+from the production tree entirely. The fourth, `nanoid < 3.3.18` via `ics` and
+`postcss`, is pinned up by an `overrides` entry in `package.json`.
+Three high findings remain in the **dev-only** tree (`deepmerge-ts` reached
+through prisma's config loader). Deliberately accepted: not in the production
+tree, not in any request path, and only "fixable" by downgrading prisma.
+NOTE: do not run bare `npm install -D prisma` — it resolves to `8.0.0-rc.12`,
+a release candidate that drags in an `alchemy`/`composer` tree with hono and
+lodash advisories. Pin the 7.x line.
+
 Also: `.env.example` was accidentally gitignored (`.env*`) and never tracked —
 fixed with `!.env.example`; its placeholders reworded so GitHub push
 protection doesn't false-positive on them. Open, deliberate: CSP still allows
 `'unsafe-inline'` — migrate to nonces only when Stripe Elements can be tested
-with real keys in a browser. `npm audit`: 0 vulnerabilities as of last check.
+with real keys in a browser.
 
 The full line-by-line checklist lives in this repo's history (original §7) and
 in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
@@ -124,6 +207,44 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 - **Code is still the source of truth.** Figma is now a mirror of it, not a
   competing spec. Never "reconcile" code back toward Figma; push code into
   Figma when they drift.
+
+- **DRIFT, 2026-08-31: Figma is a full substrate behind code.** The file still
+  mirrors the Aug 30 warm-black + ember system; code shipped the warm-paper +
+  burnt-orange one on Aug 31 and the sync was not run in that pass. Everything
+  in the Aug 30 entry below describes the file's *current* state, not the
+  site's. Re-syncing is mostly a Primitives repoint again (the ramp direction
+  never changed, so the semantic aliases survive by id), plus: `accent-ember/*`
+  renames to `accent-sun/*` with new values, `color/text/on-accent` inverts
+  back to the light end of the ramp, the status quartet re-tunes for paper, the
+  four shadow effects become real warm-brown drop shadows, and the Room Card
+  and Room Detail artwork plates lose their inset frame. The film grain has no
+  Figma equivalent worth faking. Text styles and radius do NOT change, because
+  the pack did not change.
+- **Re-synced 2026-08-30** to the dark overhaul. Variables and styles carry
+  most of it, because the file mirrors `globals.css` structurally:
+  - **Primitives** repointed to the warm-black ramp and the ember family
+    (`accent-coral/*` renamed in place to `accent-ember/*`, so every Color
+    alias survived by id). Status colors retuned for dark: the old values
+    measured 3.77 to 4.01:1 here and all failed. `cream` deleted after
+    `color/bg/canvas` was repointed off it.
+  - **All 23 Color semantics re-aliased**, including `color/text/on-accent`
+    inverting to `neutral/50`. Radius 6/12/20 to 10/18/28.
+  - **Text styles** moved from Fraunces/Inter to Bricolage Grotesque/Geist.
+    The two `* Italic` styles became `* Emphasis` (ExtraBold), which is the new
+    weight-contrast pattern. Added `Mono/Tabular` (Geist Mono).
+    Note Bricolage and Geist use `SemiBold`/`ExtraBold` with NO space, like
+    Fraunces and unlike Inter's `Semi Bold`.
+  - **486 text segments remapped by hand** across the prototype page. Style
+    updates alone were not enough: the italic + CAPS lockup was built as
+    per-segment font overrides inside single text nodes, so those nodes were
+    not style-bound and kept rendering Fraunces after the ramp changed.
+  - Hero rebuilt left-aligned (120px, 0.92 leading, ember `CREATE.`, tungsten
+    bloom); Room Card given the inset artwork plate; Primary/Disabled button
+    variant given the real disabled treatment.
+  - Still behind code, on top of the pre-existing Room Detail drift below: the
+    room-detail hero image is not yet inset, and the how-it-works numerals are
+    not yet Geist Mono.
+
 - **Re-synced 2026-08-21** to the Clockroom rebrand. Both pages updated:
   - Wordmark: all 20 `room booking platform` text nodes are now the `clockROOM`
     lockup (Fraunces `SemiBold Italic` for "clock", `SemiBold` for "ROOM"), and
@@ -204,10 +325,13 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 2. Room photography — `public/rooms/*.svg` are styled placeholders; drop real
    photos in per room (layout already takes them, zero code changes).
 3. Founder story — dashed placeholder block on `/about`.
-4. Cancellation policy — `/faq` and `/terms` honestly say "being finalized";
+4. Room B-roll — `reel` and `clips` on each room in `src/lib/rooms-data.ts`
+   (see §2). The layout, the grid and the component seam are already in place;
+   they are waiting on footage, not on code.
+5. Cancellation policy — `/faq` and `/terms` honestly say "being finalized";
    decide terms, then replace those blocks.
-5. Review `/terms` + `/privacy` drafts (counsel recommended).
-6. ~~Site name~~ — DONE (2026-08-20). The brand is **Clockroom**, set in
+6. Review `/terms` + `/privacy` drafts (counsel recommended).
+7. ~~Site name~~ — DONE (2026-08-20). The brand is **Clockroom**, set in
    `site-config.ts` and flowing to every title/metadata surface. Tagline:
    "Show up. Clock in. Create." The wordmark is `src/components/Wordmark.tsx`
    (typography, not an image) and the square mark is `src/app/icon.svg`.

@@ -26,9 +26,13 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
+            {/* Ink square on paper. The mark keeps its dark ground across the
+                substrate flip so it reads as a stamp pressed into the page,
+                and so the favicon (src/app/icon.svg, same geometry) stays
+                identical to it. No stroke: on paper the fill is the contrast. */}
             <rect width="32" height="32" rx="8" fill="var(--neutral-50)" />
-            <path d="M16 16 L23 9" stroke="var(--accent-coral-500)" strokeWidth="3.2" strokeLinecap="round" />
-            <circle cx="16" cy="16" r="2.1" fill="var(--cream)" />
+            <path d="M16 16 L23 9" stroke="var(--accent-teal-400)" strokeWidth="3.2" strokeLinecap="round" />
+            <circle cx="16" cy="16" r="2.1" fill="var(--neutral-1000)" />
           </svg>
           <Wordmark className="text-lg" />
         </Link>

@@ -83,16 +83,31 @@ export function PaymentStep({ booking, clientSecret }: { booking: Booking; clien
       options={{
         clientSecret,
         appearance: {
-          // Light editorial restyle 2026-08-07 — values mirror globals.css
-          // tokens (coral-600 accent, warm neutrals). Visual config only;
-          // the clientSecret/stripe wiring above is untouched.
-          theme: "stripe",
+          // RESTYLE 2026-08-31 — values mirror globals.css tokens (sun accent,
+          // warm-paper neutrals). Stripe Elements renders in a CROSS-ORIGIN
+          // IFRAME, so these must be literal values: CSS custom properties
+          // from this document are not visible inside it, and nothing here
+          // updates itself when the token layer changes. This block is the
+          // single reason a substrate flip cannot be a pure token swap, and it
+          // has to be re-checked by hand on every palette change. Skipping it
+          // renders a dark card-entry field on a paper page, which is the same
+          // failure the 2026-08-30 pass caught in the opposite direction.
+          //
+          // PAYMENT SURFACE, flagged per ORCHESTRATION.md guardrail 2. This is
+          // the Elements appearance object only. The clientSecret and stripe
+          // wiring above, and every server-side amount, are untouched.
+          //
+          // Verified against the paper substrate:
+          //   text    #221E1A on field #FDFAF4 = 15.89:1
+          //   error   #B3261E on field #FDFAF4 =  6.27:1
+          //   primary #0F766E on field #FDFAF4 =  5.25:1
+          theme: "flat",
           variables: {
-            colorPrimary: "#C93A20",
-            colorBackground: "#FFFFFF",
-            colorText: "#1C1A18",
-            colorDanger: "#D92D20",
-            borderRadius: "6px",
+            colorPrimary: "#0F766E",
+            colorBackground: "#FDFAF4",
+            colorText: "#221E1A",
+            colorDanger: "#B3261E",
+            borderRadius: "10px",
           },
         },
       }}
