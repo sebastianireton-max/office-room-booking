@@ -9,7 +9,6 @@ const NAV = [
   { href: "/#rooms", label: "Rooms" },
   { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "FAQ" },
-  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -19,7 +18,7 @@ export function SiteHeader() {
   /* On a room page the booking widget is already rendered at #book. Sending
      "Book a room" to the homepage grid from there walks the visitor backwards
      out of the one page where they are closest to converting. */
-  const bookHref = pathname.startsWith("/rooms/") ? "#book" : "/#rooms";
+  const bookHref = pathname.startsWith("/rooms/") ? "#book" : "/#find";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-canvas/80 backdrop-blur-xl">
@@ -50,6 +49,9 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          <Link href="/account" className="text-sm font-medium text-text-secondary hover:text-text-primary">
+            Account
+          </Link>
           <Link
             href={bookHref}
             className="inline-flex min-h-11 items-center rounded-token-full bg-accent px-5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
@@ -96,6 +98,11 @@ export function SiteHeader() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href="/account" className="block py-3.5 text-base font-medium text-text-primary" onClick={() => setOpen(false)}>
+                Account
+              </Link>
+            </li>
             <li className="pt-3">
               <Link
                 href={bookHref}

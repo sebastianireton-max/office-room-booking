@@ -42,6 +42,9 @@ export function SiteFooter() {
           <Link href="/contact" className="text-sm text-text-secondary hover:text-text-primary">
             Contact
           </Link>
+          <Link href="/account" className="text-sm text-text-secondary hover:text-text-primary">
+            Your bookings
+          </Link>
         </nav>
 
         <div className="flex flex-col gap-2.5">
@@ -53,11 +56,10 @@ export function SiteFooter() {
             {SITE.contactEmail}
           </a>
           <p className="text-sm text-text-secondary">{SITE.phone}</p>
-          <p className="text-sm text-text-secondary">
-            {SITE.address.line1}, {SITE.address.line2}
-            <br />
-            {SITE.address.city}, {SITE.address.region} {SITE.address.zip}
-          </p>
+          <address className="text-sm not-italic text-text-secondary">
+            <span className="block">{SITE.address.line1}, {SITE.address.line2},</span>
+            <span className="block">{SITE.address.city}, {SITE.address.region} {SITE.address.zip}</span>
+          </address>
         </div>
       </div>
 

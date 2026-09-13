@@ -87,9 +87,55 @@ model Booking {
   /// duplicate it.
   calendarEventUid String @unique
 
+  /// Set when the customer booked while signed in with Google.
+  userId             String?
+  user               User?     @relation(fields: [userId], references: [id])
+  /// Charged after the hold lapsed; an admin must refund or rebook.
+  paymentIssue       String?
+  stripeRefundId     String?
+  confirmationSentAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([roomId, date])
   @@index([status])
+  @@index([userId])
+  @@index([customerEmail])
+}
+
+model User {
+  id          String   @id @default(uuid())
+  /// Google's stable subject id. Never key on email: it can change.
+  googleSub   String   @unique
+  email       String
+  name        String
+  picture     String?
+  createdAt   DateTime @default(now())
+  lastLoginAt DateTime
+
+  bookings Booking[]
+}
+
+/// Admin block-out. roomId null closes every room.
+model RoomBlock {
+  id        String   @id @default(uuid())
+  roomId    String?
+  date      String
+  startTime String
+  endTime   String
+  reason    String
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model AdminAudit {
+  id         Int      @id @default(autoincrement())
+  actorEmail String
+  action     String
+  target     String
+  detail     String?
+  createdAt  DateTime @default(now())
 }

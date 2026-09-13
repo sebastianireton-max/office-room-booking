@@ -31,7 +31,14 @@ export const SITE = {
   /** Real values — mirrored from BOOKING_CONFIG so marketing pages and the
    * booking engine can't drift apart. */
   hours: { open: "8:00 AM", close: "10:00 PM", days: "7 days a week" },
+
+  /** PLACEHOLDER — the studio's IANA time zone. Slot times, same-day notice
+   * and "today" are all computed in this zone, not the server's. */
+  timeZone: "America/New_York",
 } as const;
+
+/** Absolute origin for canonical URLs, sitemap, OAuth redirect and emails. */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export const PLACEHOLDER_NOTE =
   "Placeholder: the owner supplies the real details before launch.";

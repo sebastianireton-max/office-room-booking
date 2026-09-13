@@ -62,6 +62,12 @@ export interface Booking {
   calendarEventUid: string;
   createdAt: string;
   updatedAt: string;
+  userId: string | null;
+  /** Non-null when the customer was charged but the booking could not be
+   * confirmed (hold lapsed first). Needs a human: refund or rebook. */
+  paymentIssue: string | null;
+  stripeRefundId: string | null;
+  confirmationSentAt: string | null;
 }
 
 export interface TimeSlot {
@@ -74,7 +80,26 @@ export interface TimeSlot {
    * window. Collapsing both into `available: false` made empty studios read
    * as fully booked every morning — the chip label needs to tell them apart.
    */
-  unavailableReason?: "booked" | "too-soon";
+  unavailableReason?: "booked" | "too-soon" | "closed";
+}
+
+/** An admin block-out. `roomId: null` closes every room for that window. */
+export interface RoomBlock {
+  id: string;
+  roomId: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  picture: string | null;
 }
 
 export const ROOM_TYPE_LABELS: Record<RoomType, string> = {
@@ -96,4 +121,6 @@ export const BOOKING_CONFIG = {
    * in bookings-repository.ts. Covers slow 3D Secure / delayed webhook delivery
    * without leaving an abandoned payment attempt locking the slot forever. */
   paymentGraceMinutes: 30,
+  /** How far ahead a slot can be booked. */
+  maxAdvanceDays: 180,
 } as const;

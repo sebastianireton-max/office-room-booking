@@ -50,3 +50,7 @@ next-env.d.ts
 
 # design-verified output: screenshots + report, regenerated on every run
 /.design-audit/
+
+# agent worktrees and Playwright MCP session logs
+/.claude/worktrees/
+/.playwright-mcp/

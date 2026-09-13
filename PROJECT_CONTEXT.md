@@ -4,8 +4,8 @@
 session, another tool, or a human gets full context here without re-deriving
 any of it. `CLAUDE.md` imports this file, so Claude Code loads it automatically.
 
-Owner: thedreamgivers@icloud.com. Last rewritten: August 30, 2026 (supersedes the
-August 7 handoff, which described the site before the dark visual overhaul).
+Owner: thedreamgivers@icloud.com. Last rewritten: August 30, 2026; revamp
+section §0 added September 13, 2026 and takes precedence where they differ.
 
 Repo: https://github.com/sebastianireton-max/office-room-booking (branch `main`,
 pushed directly — no PR gate is established for this repo yet).
@@ -37,6 +37,83 @@ Later directives that shaped the current state:
   membership offers, or policy terms the owner hasn't decided.
 - **Figma export**: wanted, but deferred until the owner upgrades their Figma
   seat (see Section 6).
+- **2026-09-13**: "review the whole site for flaws and AI slop and fully revamp
+  it, give it an admin page with the things it needs to function, a continue
+  with Google, and fully build in the pages it needs to be on Google."
+
+---
+
+## 0. Revamp of 2026-09-13 — read this before §2 (it supersedes parts of it)
+
+Driven by three independent audits (design/slop, security, Google-search
+readiness) plus GBrain's anti-slop reference, then built and verified in one pass.
+
+**Verdict on "AI slop"** (kept here because the design-auditor disagreed): the
+tokens, contrast and mechanics were sound and still are. The template feel came
+from composition, not palette: one heading trick ("lowercase + HEAVY CAPS")
+repeated about seven times per page, lowercase room names, a hero that was only
+a slogan, art tiles you could not compare, and no way to see open times without
+opening six pages. The palette, fonts and radius were kept (owner-approved);
+the weight-contrast lockup now appears **once**, in the hero brand line. Every
+other heading is plain sentence case. Do not reintroduce the lockup elsewhere.
+
+**Public site**
+- Pages live in the `src/app/(site)` route group (URLs unchanged); the root
+  layout is chrome-free so `/admin` has its own.
+- Homepage: hero with `AvailabilityFinder` (live open times for every room on a
+  date, via `/api/availability/day`, deep-linking `?date=&start=&duration=#book`
+  into the room's `BookingFlow`, which preselects it); rooms as a comparison list.
+- Room pages: breadcrumbs, spec row, "Included in the rate" list, rates box,
+  "Illustration of the setup" caption (imagery is honest about being artwork).
+- Confirmation page: Outlook link now carries dates; the "not confirmed" state
+  no longer claims "your card was not charged" (false in the lapsed-hold case).
+- `/signin`, `/account` (bookings by user id OR Google-verified email), root
+  `not-found.tsx`. Privacy page updated for Google sign-in and Resend.
+- Deleted: create-next-app SVGs in `public/`, unused `RoomTypeBadge`.
+
+**Booking engine fixes (real bugs found in audit)**
+- Server accepted holds for past dates, inside the notice window, off the hour
+  grid and years ahead; the UI only greyed them out. Now refused in `createHold`.
+- "Today" mixed the UTC date with server-local hours. Now computed in
+  `SITE.timeZone` (`nowInZone` in `format.ts`). PLACEHOLDER zone: America/New_York.
+- `BOOKING_CONFIG.turnoverBufferMinutes` (15) is still **not enforced**. With
+  60-minute slots enforcing it would block back-to-back bookings; owner decision.
+
+**Google sign-in** (SECURITY-RELEVANT): plain OIDC code flow + PKCE + state +
+nonce, no auth library (`src/lib/auth/`). ID token claims validated (iss, aud,
+exp, nonce, email_verified) without JWKS, because the token comes straight from
+Google's token endpoint over TLS with the client secret (OIDC Core 3.1.3.7; the
+first security pass asked for JWKS + `jose` and that was declined on these
+grounds). Session = HMAC-signed httpOnly cookie, 14 days, stateless (no per-device
+revocation). Users keyed on Google `sub`, never email.
+
+**Admin** at `/admin` (SECURITY-RELEVANT): access = `ADMIN_EMAILS`, re-checked on
+every page, server action and route handler via `requireAdmin()` (a layout check
+alone does not protect actions). Today view (stats, per-room hour grid, setup
+health checklist of every missing env var/placeholder), bookings list + filters +
+CSV export (formula-injection safe), booking detail (cancel, cancel + full Stripe
+refund with idempotency key `refund-<id>`, resend confirmation), "Charged but not
+booked" queue (`payment_issue`, set by the webhook when a lapsed hold gets paid),
+block-outs (`room_blocks`, enforced in availability and holds), activity log.
+
+**Also new**: confirmation email via Resend HTTP API with .ics attached (the form
+had always promised one; nothing was sent); webhook handles `charge.refunded`;
+public booking API no longer returns email/phone/Stripe ids; CSP adds
+`object-src`, `base-uri`, `frame-ancestors`, `form-action`, and `unsafe-eval` in
+development only. **Next.js 16.3.0 had a critical unauthenticated RCE advisory**
+(GHSA-p293-qw3h-jr36, GHSA-2xp9-vwfh-vxw4); bumped to 16.3.5, prod tree 0 vulns.
+
+**Google search**: `metadataBase`, per-page canonicals, `LocalBusiness` JSON-LD
+(from `SITE`, so NAP stays consistent), `Service` + `BreadcrumbList` per room,
+`FAQPage`, generated `opengraph-image`, per-room PNG share images in
+`public/rooms/og/`, `manifest.ts`, sitemap with `lastModified`, robots blocking
+`/admin /account /signin /api /confirmation`, `GOOGLE_SITE_VERIFICATION` env.
+Fixed: every room page title said "Clockroom" twice. No `aggregateRating`, ever.
+
+**Tests**: `tests/smoke.mjs` (`npm run test:smoke`), 45 checks against a running
+server with a throwaway `DATABASE_PATH`: SEO endpoints, hold guards, PII trimming,
+auth gates (anon, forged, expired, non-admin), OAuth PKCE/state, CSV, admin block
++ cancel in Chromium, no horizontal scroll at 390px. Instructions in the file.
 
 ---
 
@@ -153,7 +230,12 @@ A complete, working studio-rental site — not just a booking funnel:
 Unchanged policy: **never ask for or accept a raw Stripe key in chat.** The
 owner copies `.env.example` → `.env.local` themselves:
 `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
-`STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SITE_URL`.
+`STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SITE_URL`. Added 2026-09-13, same rule
+(owner sets them, never through chat): `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+`AUTH_SECRET`, `ADMIN_EMAILS`, `RESEND_API_KEY`, `EMAIL_FROM`,
+`GOOGLE_SITE_VERIFICATION`. `.env.example` explains where each comes from, and
+`/admin` lists whichever are still missing. The webhook now also needs the
+`charge.refunded` event.
 First thing to test once keys exist: a full real test-mode payment with
 `stripe listen --forward-to localhost:3000/api/webhooks/stripe`.
 
@@ -322,8 +404,12 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 
 1. `src/lib/site-config.ts` — email, phone, address, socials (all obviously
    fake: `hello@yourstudio.example`, `123 Your Street`).
-2. Room photography — `public/rooms/*.svg` are styled placeholders; drop real
-   photos in per room (layout already takes them, zero code changes).
+2. Room photography — `public/rooms/art/<id>.webp` are illustrations; drop real
+   photos in at the same paths (and regenerate `public/rooms/og/<id>.png`, and
+   remove the "Illustration of the setup" caption on the room page).
+8. `SITE.timeZone` in `site-config.ts` — set to the studio's real IANA zone.
+9. Google, Resend and admin env vars (§4). Until set: no sign-in, no
+   confirmation emails, no admin access.
 3. Founder story — dashed placeholder block on `/about`.
 4. Room B-roll — `reel` and `clips` on each room in `src/lib/rooms-data.ts`
    (see §2). The layout, the grid and the component seam are already in place;
@@ -353,12 +439,13 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
    single persistent instance initially.
 4. **Prisma + Postgres migration** (schema already written; swap the
    repository functions).
-5. **Committed Playwright test suite.** `@playwright/test` is now installed
-   and there is a working harness at
-   `.agents/skills/design-verified/verify.mjs` (`npm run design:verify`), but
-   it only covers *visual/a11y* checks. The functional suite is still to do:
-   the booking flow end to end, the double-booking race, and the webhook
-   handler with signed test payloads.
+5. **Functional tests.** PARTLY DONE (2026-09-13): `tests/smoke.mjs` covers
+   the guards, auth gates and admin flows (§0). Still to do: the real Stripe
+   payment + signed webhook path, and a concurrent double-booking race test.
+7. **Figma is now two revisions behind** (warm-paper palette AND the 2026-09-13
+   revamp). Re-sync when Figma work resumes; code is the source of truth.
+8. Owner decisions: turnover buffer between bookings (config exists, not
+   enforced); whether admin cancellations should email the customer.
 6. When real content exists: testimonials section, membership/events pages —
    currently excluded on purpose (no fabricated social proof or offers).
 

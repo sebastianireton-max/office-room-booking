@@ -26,7 +26,7 @@ export function TimeSlotChip({
 }: {
   label: string;
   state: "available" | "selected" | "unavailable";
-  unavailableReason?: "booked" | "too-soon";
+  unavailableReason?: "booked" | "too-soon" | "closed";
   onClick?: () => void;
 }) {
   const isUnavailable = state === "unavailable";
@@ -46,7 +46,7 @@ export function TimeSlotChip({
         .filter(Boolean)
         .join(" ")}
     >
-      {isUnavailable ? `${label} · ${unavailableReason === "too-soon" ? "Closed" : "Booked"}` : label}
+      {isUnavailable ? `${label} · ${unavailableReason === "booked" ? "Booked" : "Closed"}` : label}
     </button>
   );
 }

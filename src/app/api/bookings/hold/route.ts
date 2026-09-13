@@ -8,6 +8,8 @@ import {
 import { createHoldSchema } from "@/lib/validation";
 import { checkRateLimit, clientKey } from "@/lib/rate-limit";
 import { BOOKING_CONFIG } from "@/types/domain";
+import { getCurrentUser } from "@/lib/auth/session";
+import { publicBooking } from "@/lib/public-booking";
 
 export async function POST(req: NextRequest) {
   // Tighter limit than availability reads — this writes a row.
@@ -23,9 +25,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const booking = createHold(parsed.data);
+    const user = await getCurrentUser();
+    const booking = createHold({ ...parsed.data, userId: user?.id ?? null });
     return NextResponse.json({
-      booking,
+      booking: publicBooking(booking),
       holdDurationMinutes: BOOKING_CONFIG.holdDurationMinutes,
     });
   } catch (err) {

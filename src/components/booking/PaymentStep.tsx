@@ -5,9 +5,9 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { useRouter } from "next/navigation";
 import { getClientStripe, isStripeClientConfigured } from "@/lib/stripe-client";
 import { Button } from "@/components/Button";
-import type { Booking } from "@/types/domain";
+import type { PublicBooking } from "@/lib/public-booking";
 
-function InnerPaymentForm({ booking }: { booking: Booking }) {
+function InnerPaymentForm({ booking }: { booking: PublicBooking }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -62,7 +62,7 @@ function InnerPaymentForm({ booking }: { booking: Booking }) {
   );
 }
 
-export function PaymentStep({ booking, clientSecret }: { booking: Booking; clientSecret: string }) {
+export function PaymentStep({ booking, clientSecret }: { booking: PublicBooking; clientSecret: string }) {
   if (!isStripeClientConfigured()) {
     return (
       <div className="flex flex-col gap-2 rounded-token-md border border-border-default bg-surface-raised p-4 text-sm text-text-secondary">

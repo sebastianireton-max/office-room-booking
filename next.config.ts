@@ -11,12 +11,19 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       // Stripe.js + Payment Element need their own script/frame/connect origins.
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com",
+      // React uses eval only in development, for readable stack traces.
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://js.stripe.com`,
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "connect-src 'self' https://api.stripe.com",
       "img-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+      // Google sign-in is a top-level redirect started from a link, so it needs
+      // no script/connect origins; forms only post back to this site.
+      "form-action 'self'",
     ].join("; "),
   },
   // Only meaningful over HTTPS in production; harmless locally over HTTP.

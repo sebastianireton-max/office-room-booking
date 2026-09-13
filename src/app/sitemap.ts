@@ -1,22 +1,26 @@
 import type { MetadataRoute } from "next";
 import { ROOMS } from "@/lib/rooms-data";
+import { SITE_URL } from "@/lib/site-config";
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const BUILT = new Date();
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticPages = ["", "/pricing", "/faq", "/about", "/contact", "/terms", "/privacy"].map(
-    (path) => ({
-      url: `${BASE}${path}`,
-      changeFrequency: "weekly" as const,
-      priority: path === "" ? 1 : 0.6,
-    })
-  );
-
-  const roomPages = ROOMS.filter((r) => r.active).map((room) => ({
-    url: `${BASE}/rooms/${room.id}`,
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
-
-  return [...staticPages, ...roomPages];
+  const pages: [string, number][] = [
+    ["", 1],
+    ["/pricing", 0.8],
+    ["/faq", 0.6],
+    ["/about", 0.5],
+    ["/contact", 0.5],
+    ["/terms", 0.3],
+    ["/privacy", 0.3],
+  ];
+  return [
+    ...pages.map(([path, priority]) => ({ url: `${SITE_URL}${path}`, lastModified: BUILT, priority })),
+    ...ROOMS.filter((r) => r.active).map((r) => ({
+      url: `${SITE_URL}/rooms/${r.id}`,
+      lastModified: BUILT,
+      priority: 0.9,
+      images: [`${SITE_URL}/rooms/og/${r.id}.png`],
+    })),
+  ];
 }
