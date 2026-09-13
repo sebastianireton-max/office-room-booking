@@ -110,10 +110,52 @@ development only. **Next.js 16.3.0 had a critical unauthenticated RCE advisory**
 `/admin /account /signin /api /confirmation`, `GOOGLE_SITE_VERIFICATION` env.
 Fixed: every room page title said "Clockroom" twice. No `aggregateRating`, ever.
 
-**Tests**: `tests/smoke.mjs` (`npm run test:smoke`), 45 checks against a running
-server with a throwaway `DATABASE_PATH`: SEO endpoints, hold guards, PII trimming,
-auth gates (anon, forged, expired, non-admin), OAuth PKCE/state, CSV, admin block
-+ cancel in Chromium, no horizontal scroll at 390px. Instructions in the file.
+**Tests**: `tests/smoke.mjs` (`npm run test:smoke`), 63 checks against a running
+server (dev or `next start`) with a throwaway `DATABASE_PATH`: SEO endpoints, hold
+guards, PII trimming, **Stripe webhooks signed exactly as Stripe signs them**
+(confirm, idempotent replay, lapsed-hold flag, partial vs full refund, bad
+signature), a **12-way concurrent double-booking race** (exactly one wins), auth
+gates, OAuth PKCE/state, CSV, admin block + cancel in Chromium, a **keyboard-only
+booking pass** (skip link, Tab to a slot, visible ring, Enter selects), and no
+horizontal scroll at 390px on ten routes. Setup is at the top of the file.
+
+### Design pass 2 (same day): hallmark audit, applied
+
+Ran GBrain's design material (anti-slop reference, animation reference, the new
+`conventions/web-compliance-defaults`) through ONE critique lens, hallmark's
+`audit` verb, with design-verified as the governing ruleset. GBrain's standing
+note is not to stack hallmark + taste-skill + ui-ux-pro-max; that was followed.
+Found and fixed:
+- **AI nav** (full-bleed sticky bar + hairline) -> floating contained pill; the
+  hamburger icon is now a text "Menu" button (design-verified 4.6 bans
+  hand-rolled SVG icons).
+- **AI footer** (four link columns + tiny copyright) -> dark statement footer:
+  "Open every day, 8:00 AM to 10:00 PM." + full NAP block + one inline row each
+  of rooms and site links. New semantic tokens `--color-bg-inverse`,
+  `--color-text-on-inverse(-strong)`, `--color-border-inverse`; focus ring on
+  ink switches to teal-300 (teal-600 is only ~3:1 there).
+- **Hero stat row** (banned by design-verified 4.1) removed. **The six rooms
+  appeared twice** (finder + list) -> one `RoomBoard`: sticky day/length/type
+  controls, and per room the art, specs, price for the chosen length and up to
+  four real open times ("6 PM"), each deep-linking into booking. `RoomCard` and
+  `AvailabilityFinder` deleted.
+- **Three equal cards** (room page cross-sell) -> compact "Other rooms" list.
+  Checkmark SVGs on the equipment list removed.
+- **Bouncy overshoot easing + `transition-all`** on buttons -> named properties,
+  ease-out. `--ease-spring` token deleted. Scroll `.reveal` deleted; motion is
+  one load entrance (`.enter`, transform-only, staggered) and press feedback.
+  MOTION_INTENSITY is now 3.
+- **Spinner** on the confirmation page -> skeleton in the card's shape.
+- **Compliance defaults**: skip-to-content link + `#main-content` target,
+  `/accessibility` statement (only claims the smoke suite verifies), linked in
+  the footer and sitemap.
+- Contact page 2x2 uppercase-label cards -> a definition list. Removed two
+  invented claims there ("a real person reads it", "Staffed during open hours").
+- FAQ content moved to `src/lib/faq.ts`, shared by `/faq` and the homepage's
+  "Before you pay" disclosure list, so they cannot drift.
+Still true and NOT fixed, because only the owner can: the room illustrations
+read as AI art (hallmark "AI-illustration look"). Real photos are the fix; the
+caption keeps them honest meanwhile.
 
 ---
 
@@ -407,9 +449,6 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
 2. Room photography — `public/rooms/art/<id>.webp` are illustrations; drop real
    photos in at the same paths (and regenerate `public/rooms/og/<id>.png`, and
    remove the "Illustration of the setup" caption on the room page).
-8. `SITE.timeZone` in `site-config.ts` — set to the studio's real IANA zone.
-9. Google, Resend and admin env vars (§4). Until set: no sign-in, no
-   confirmation emails, no admin access.
 3. Founder story — dashed placeholder block on `/about`.
 4. Room B-roll — `reel` and `clips` on each room in `src/lib/rooms-data.ts`
    (see §2). The layout, the grid and the component seam are already in place;
@@ -423,6 +462,9 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
    (typography, not an image) and the square mark is `src/app/icon.svg`.
    NOTE: the name has only had an informal collision spot-check. Run a real
    USPTO / state-registry / domain search before printing anything.
+8. `SITE.timeZone` in `site-config.ts` — set to the studio's real IANA zone.
+9. Google, Resend and admin env vars (§4). Until set: no sign-in, no
+   confirmation emails, no admin access.
 
 ## 8. Next steps, in priority order
 
@@ -439,15 +481,17 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
    single persistent instance initially.
 4. **Prisma + Postgres migration** (schema already written; swap the
    repository functions).
-5. **Functional tests.** PARTLY DONE (2026-09-13): `tests/smoke.mjs` covers
-   the guards, auth gates and admin flows (§0). Still to do: the real Stripe
-   payment + signed webhook path, and a concurrent double-booking race test.
-7. **Figma is now two revisions behind** (warm-paper palette AND the 2026-09-13
-   revamp). Re-sync when Figma work resumes; code is the source of truth.
-8. Owner decisions: turnover buffer between bookings (config exists, not
-   enforced); whether admin cancellations should email the customer.
+5. **Functional tests.** MOSTLY DONE (2026-09-13): `tests/smoke.mjs`, 63
+   checks, including signed webhooks and the double-booking race (§0). Still
+   to do: a real test-mode card payment through Stripe Elements (needs keys).
 6. When real content exists: testimonials section, membership/events pages —
    currently excluded on purpose (no fabricated social proof or offers).
+7. **Figma is now three revisions behind** (warm-paper palette, the 2026-09-13
+   revamp, and design pass 2). Re-sync when Figma work resumes; code wins.
+8. Owner decisions: turnover buffer between bookings (config exists, not
+   enforced); whether admin cancellations should email the customer; whether
+   guest bookings typed with someone's email should appear in that person's
+   account without an email confirmation step.
 
 ---
 

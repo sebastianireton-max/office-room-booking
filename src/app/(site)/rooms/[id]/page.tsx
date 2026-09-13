@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { getRoomById, ROOMS } from "@/lib/rooms-data";
 import { SITE_URL } from "@/lib/site-config";
 import { MediaSlot } from "@/components/MediaSlot";
-import { RoomCard } from "@/components/RoomCard";
+import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
 import { formatUsd, formatUsdPerHour } from "@/lib/format";
 import { BookingFlow } from "@/components/booking/BookingFlow";
@@ -133,12 +133,9 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
 
             <section className="flex flex-col gap-4">
               <h2 className="font-display text-3xl font-semibold text-text-primary">Included in the rate</h2>
-              <ul className="flex flex-col border-t border-border-subtle">
+              <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
                 {room.equipment.map((item) => (
-                  <li key={item} className="flex items-start gap-3 border-b border-border-subtle py-3.5 text-text-primary">
-                    <svg className="mt-1 h-4 w-4 shrink-0 text-text-accent" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  <li key={item} className="border-t border-border-subtle pt-3 leading-snug text-text-primary">
                     {item}
                   </li>
                 ))}
@@ -201,14 +198,27 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
       )}
 
       {others.length > 0 && (
-        <section className="border-t border-border-subtle bg-surface px-6 py-16">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="mb-8 font-display text-3xl font-semibold text-text-primary">Other rooms</h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="bg-surface px-6 py-14">
+          <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+            <h2 className="font-display text-3xl font-semibold text-text-primary">Other rooms</h2>
+            <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
               {others.map((r) => (
-                <RoomCard key={r.id} room={r} />
+                <li key={r.id}>
+                  <Link href={`/rooms/${r.id}`} className="group flex min-h-16 items-center gap-4 py-3">
+                    <span className="relative h-12 w-16 shrink-0 overflow-hidden rounded-[6px]">
+                      <Image src={`/rooms/art/${r.id}.webp`} alt="" fill sizes="64px" className="object-cover" />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="font-semibold text-text-primary group-hover:text-text-accent">{r.name}</span>
+                      <span className="text-sm text-text-secondary">
+                        {ROOM_TYPE_LABELS[r.type]} · {r.capacity} people
+                      </span>
+                    </span>
+                    <span className="tabular whitespace-nowrap font-semibold text-text-primary">{formatUsdPerHour(r.hourlyRateCents)}</span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </section>
       )}

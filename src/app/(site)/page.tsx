@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { ROOMS } from "@/lib/rooms-data";
 import { SITE } from "@/lib/site-config";
-import { AvailabilityFinder } from "@/components/AvailabilityFinder";
-import { BOOKING_CONFIG, ROOM_TYPE_LABELS } from "@/types/domain";
-import { formatUsdPerHour } from "@/lib/format";
+import { FAQS } from "@/lib/faq";
+import { RoomBoard } from "@/components/RoomBoard";
+import { BOOKING_CONFIG } from "@/types/domain";
 
 export const metadata: Metadata = {
   description: `${SITE.tagline} Pick an exact date and start time, pay securely, and get a calendar invite.`,
@@ -13,131 +12,92 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  ["Pick a room and a time", "Every room lists its gear and size. Times are exact: start on the hour, book 1 to 3 hours."],
-  ["Pay to lock it in", `The slot is held for ${BOOKING_CONFIG.holdDurationMinutes} minutes while you check out. Card payment runs through Stripe.`],
-  ["Show up and work", "Confirmation and a calendar invite land in your inbox. The gear is set up before you arrive."],
+  ["Pick a time", "Choose a day, a length and an open start time on any room."],
+  ["Pay to lock it in", `Your slot is held for ${BOOKING_CONFIG.holdDurationMinutes} minutes while you pay by card through Stripe.`],
+  ["Walk in and work", "The confirmation email carries a calendar invite. The gear is set up before you arrive."],
 ];
+
+// The three questions people most often need answered before paying.
+const TOP_QUESTIONS = [FAQS[2], FAQS[4], FAQS[7]];
 
 export default function HomePage() {
   const rooms = ROOMS.filter((r) => r.active);
-  const lowest = Math.min(...rooms.map((r) => r.hourlyRateCents));
 
   return (
     <main className="flex flex-1 flex-col">
-      <section id="find" className="scroll-mt-20 px-6 pb-16 pt-12 sm:pt-20 lg:pb-24">
-        <div className="mx-auto grid max-w-6xl items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:gap-16">
-          <div className="flex flex-col gap-8 lg:pt-6">
-            <h1 className="font-display text-[clamp(3rem,8.5vw,6.25rem)] leading-[0.92] text-text-primary">
-              <span className="block font-normal lowercase">show up.</span>
-              <span className="block font-normal lowercase">clock in.</span>
-              <span className="block font-extrabold uppercase text-text-accent">CREATE.</span>
-            </h1>
-            <p className="max-w-[34rem] text-lg leading-relaxed text-text-secondary sm:text-xl">
-              Six rooms for filming, recording and meeting, rented by the hour. The lights, mics and screens are
-              already set up, so the hour you pay for is spent working.
+      <section className="px-6 pb-10 pt-14 sm:pb-14 sm:pt-20">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8">
+          <h1 className="font-display text-[clamp(3.25rem,10vw,7.5rem)] leading-[0.9] text-text-primary">
+            <span className="block font-normal lowercase">
+              show up. <br className="sm:hidden" />
+              clock in.
+            </span>
+            <span className="block font-extrabold uppercase text-text-accent">CREATE.</span>
+          </h1>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-10">
+            <p className="max-w-[31rem] text-lg leading-relaxed text-text-secondary sm:text-xl">
+              Six rooms for filming, recording and meeting, with the gear already set up. Book them by the hour.
             </p>
-            <dl className="grid max-w-[34rem] grid-cols-3 gap-4 border-t border-border-subtle pt-6">
-              {[
-                ["From", formatUsdPerHour(lowest)],
-                ["Open", `${SITE.hours.open.replace(":00", "")}–${SITE.hours.close.replace(":00", "")}`],
-                ["Days", "Every day"],
-              ].map(([k, v]) => (
-                <div key={k} className="flex flex-col gap-1">
-                  <dt className="text-sm text-text-secondary">{k}</dt>
-                  <dd className="tabular text-base font-semibold text-text-primary sm:text-lg">{v}</dd>
-                </div>
-              ))}
-            </dl>
+            <Link
+              href="#rooms"
+              className="inline-flex min-h-12 w-fit items-center whitespace-nowrap rounded-token-full bg-accent px-7 font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
+            >
+              See open times
+            </Link>
           </div>
-          <AvailabilityFinder rooms={rooms} timeZone={SITE.timeZone} />
         </div>
       </section>
 
-      <section id="rooms" className="scroll-mt-20 border-t border-border-subtle bg-surface px-6 py-16 sm:py-24">
+      <section id="rooms" aria-labelledby="rooms-heading" className="scroll-mt-24 px-6 pb-20 sm:pb-28">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-10 flex flex-col gap-3 sm:mb-14 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="font-display text-4xl font-semibold text-text-primary sm:text-5xl">The rooms</h2>
-            <p className="max-w-md text-text-secondary">
-              Compare them side by side. The pictures are illustrations of each setup, drawn from its gear list.
-            </p>
-          </div>
-
-          <ul className="flex flex-col">
-            {rooms.map((room) => (
-              <li key={room.id} className="border-t border-border-subtle last:border-b">
-                <Link
-                  href={`/rooms/${room.id}`}
-                  className="group grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-5 gap-y-3 py-6 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:gap-x-8"
-                >
-                  <div className="relative row-span-2 aspect-[4/3] overflow-hidden rounded-token-sm bg-canvas sm:row-span-1">
-                    <Image
-                      src={`/rooms/art/${room.id}.webp`}
-                      alt=""
-                      fill
-                      sizes="(max-width: 640px) 112px, 192px"
-                      className="object-cover transition-transform duration-[var(--duration-slow)] ease-[var(--ease-out-expo)] group-hover:scale-[1.04] motion-reduce:group-hover:scale-100"
-                    />
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1.5">
-                    <p className="text-sm text-text-secondary">
-                      {ROOM_TYPE_LABELS[room.type]} · {room.capacity} people · {room.sqft} sq ft
-                    </p>
-                    <h3 className="font-display text-2xl font-semibold text-text-primary group-hover:text-text-accent sm:text-3xl">
-                      {room.name}
-                    </h3>
-                    <p className="hidden text-text-secondary sm:block">{room.tagline}</p>
-                    <p className="hidden truncate text-sm text-text-secondary md:block">{room.equipment.join(" · ")}</p>
-                  </div>
-                  <div className="col-start-2 flex items-center gap-4 sm:col-start-auto sm:flex-col sm:items-end">
-                    <span className="tabular text-lg font-semibold text-text-primary">{formatUsdPerHour(room.hourlyRateCents)}</span>
-                    <span className="text-sm font-medium text-text-accent underline-offset-4 group-hover:underline">
-                      See room and book
-                    </span>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <h2 id="rooms-heading" className="sr-only">
+            Rooms and open times
+          </h2>
+          <RoomBoard rooms={rooms} timeZone={SITE.timeZone} />
+          <p className="mt-5 text-sm text-text-secondary">
+            Room pictures are illustrations drawn from each room&apos;s gear list. Prices are the full price: no fees, no
+            memberships.
+          </p>
         </div>
       </section>
 
-      <section className="px-6 py-16 sm:py-24">
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-20">
-          <div className="flex flex-col gap-4">
-            <h2 className="font-display text-4xl font-semibold text-text-primary">How booking works</h2>
-            <p className="text-text-secondary">
-              No account needed. Sign in with Google if you want your bookings in one place.
-            </p>
-          </div>
-          <ol className="flex flex-col">
+      <section className="bg-surface px-6 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="mb-10 font-display text-4xl font-semibold text-text-primary sm:text-5xl">How booking works</h2>
+          <ol className="grid gap-px overflow-hidden rounded-token-md border border-border-subtle bg-border-subtle md:grid-cols-[1.2fr_1fr_1fr]">
             {STEPS.map(([title, body], i) => (
-              <li key={title} className="flex gap-6 border-t border-border-subtle py-6 first:border-t-0 first:pt-0">
-                <span className="tabular w-8 shrink-0 text-2xl text-text-accent" aria-hidden="true">
-                  {i + 1}
+              <li key={title} className="flex flex-col gap-3 bg-surface p-6 sm:p-8">
+                <span className="tabular text-sm text-text-accent" aria-hidden="true">
+                  Step {i + 1}
                 </span>
-                <div className="flex flex-col gap-1.5">
-                  <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
-                  <p className="leading-relaxed text-text-secondary">{body}</p>
-                </div>
+                <h3 className="text-xl font-semibold text-text-primary">{title}</h3>
+                <p className="leading-relaxed text-text-secondary">{body}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      <section className="border-t border-border-subtle bg-surface px-6 py-14">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div className="flex flex-col gap-2">
-            <h2 className="font-display text-3xl font-semibold text-text-primary">Questions before you book?</h2>
-            <p className="text-text-secondary">Hours, holds, payment and what&apos;s included, answered.</p>
+      <section className="px-6 py-16 sm:py-20">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+          <div className="flex flex-col gap-3">
+            <h2 className="font-display text-4xl font-semibold text-text-primary">Before you pay</h2>
+            <Link href="/faq" className="w-fit font-medium text-text-accent underline underline-offset-4">
+              All questions
+            </Link>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/faq" className="inline-flex min-h-11 items-center rounded-token-full border border-border-default px-6 font-medium text-text-primary hover:border-border-accent hover:text-text-accent">
-              Read the FAQ
-            </Link>
-            <Link href="/contact" className="inline-flex min-h-11 items-center rounded-token-full px-4 font-medium text-text-primary underline underline-offset-4 hover:text-text-accent">
-              Contact us
-            </Link>
+          <div className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
+            {TOP_QUESTIONS.map((f) => (
+              <details key={f.q} className="group">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-semibold text-text-primary [&::-webkit-details-marker]:hidden">
+                  {f.q}
+                  <span aria-hidden="true" className="tabular text-xl text-text-accent transition-transform group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="max-w-[62ch] pb-5 leading-relaxed text-text-secondary">{f.a}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>

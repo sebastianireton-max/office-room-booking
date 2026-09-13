@@ -65,10 +65,16 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
   );
 
   if (status === "loading" || status === "processing") {
+    // Skeleton in the shape of the confirmed card, not a spinner.
     return shell(
-      <div className="flex items-center gap-3" role="status">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border-default border-t-accent motion-reduce:animate-none" />
-        <p className="text-text-secondary">Confirming your payment. Keep this page open.</p>
+      <div role="status" className="flex flex-col gap-4">
+        <p className="tabular text-sm text-text-secondary">Confirming your payment. Keep this page open.</p>
+        <div className="h-12 w-3/4 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
+        <div className="flex flex-col gap-2 border-y border-border-subtle py-5">
+          <div className="h-6 w-1/2 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
+          <div className="h-5 w-2/3 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
+        </div>
+        <div className="h-11 animate-pulse rounded-token-full bg-surface-raised motion-reduce:animate-none" />
       </div>
     );
   }

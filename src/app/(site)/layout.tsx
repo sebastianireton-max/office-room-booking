@@ -36,8 +36,17 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           sameAs: Object.values(SITE.social),
         }}
       />
+      {/* WCAG 2.4.1: first focusable element, visible only when focused. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-token-full focus:bg-accent focus:px-5 focus:py-3 focus:font-semibold focus:text-on-accent"
+      >
+        Skip to content
+      </a>
       <SiteHeader />
-      {children}
+      <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
+        {children}
+      </div>
       <SiteFooter />
     </>
   );

@@ -2,12 +2,16 @@
 //
 //   $env:DATABASE_PATH="data/smoke.db"; $env:AUTH_SECRET="smoke-secret-smoke-secret-smoke-secret"
 //   $env:ADMIN_EMAILS="admin@smoke.test"; $env:GOOGLE_CLIENT_ID="smoke"; $env:GOOGLE_CLIENT_SECRET="smoke"
+//   $env:STRIPE_SECRET_KEY="smoke-not-a-real-key"; $env:STRIPE_WEBHOOK_SECRET="smoke-webhook-secret"
 //   npm run dev -- --port 3002      (same env), then:  npm run test:smoke
 //
+// The Stripe values are deliberately not key-shaped: webhook signatures are
+// checked locally, so no real key or network call is involved.
 // Exits non-zero on the first failed check.
 import { DatabaseSync } from "node:sqlite";
 import { createHmac, randomUUID } from "node:crypto";
 import { chromium } from "playwright";
+import Stripe from "stripe";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3002";
 const DB = process.env.DATABASE_PATH;
@@ -32,7 +36,9 @@ const sign = (payload) => {
 
 // --- Public pages and search plumbing -------------------------------------
 const home = await (await get("/")).text();
-check("home renders the finder", home.includes("Find an open room"));
+check("home renders the room board", home.includes("Open start times") && home.includes("The Boardroom"));
+check("skip link is present", home.includes('href="#main-content"') && home.includes('id="main-content"'));
+check("accessibility statement served", (await get("/accessibility")).status === 200);
 check("home has LocalBusiness JSON-LD", home.includes('"@type":"LocalBusiness"'));
 
 const room = await (await get("/rooms/podcast-a")).text();
@@ -57,10 +63,13 @@ check("CSP forbids framing", (await get("/")).headers.get("content-security-poli
 const dayRes = await (await get(`/api/availability/day?date=${day(2)}&durationMinutes=60`)).json();
 check("day availability covers 6 rooms", dayRes.rooms?.length === 6);
 
+// Each request looks like a different client, so the per-IP hold limit (10/min)
+// does not trip mid-suite. Locally there is no proxy, so the header is honoured.
+let ip = 0;
 const hold = (body) =>
   get("/api/bookings/hold", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-forwarded-for": `10.0.0.${++ip}` },
     body: JSON.stringify({ roomId: "content-a", durationMinutes: 60, customerName: "Smoke Test", customerEmail: "guest@smoke.test", ...body }),
   });
 check("server refuses a past date", (await hold({ date: day(-1), startTime: "10:00" })).status === 400);
@@ -84,9 +93,45 @@ const adminId = randomUUID();
 const userId = randomUUID();
 db.prepare("INSERT INTO users (id, google_sub, email, name, picture, created_at, last_login_at) VALUES (?,?,?,?,?,?,?)").run(adminId, `sub-${adminId}`, "admin@smoke.test", "Admin", null, now, now);
 db.prepare("INSERT INTO users (id, google_sub, email, name, picture, created_at, last_login_at) VALUES (?,?,?,?,?,?,?)").run(userId, `sub-${userId}`, "guest@smoke.test", "Guest", null, now, now);
-// Simulate the webhook outcomes: one confirmed booking, one paid-after-expiry.
-db.prepare("UPDATE bookings SET status='confirmed', hold_expires_at=NULL WHERE id=?").run(firstBody.booking.id);
-db.prepare("UPDATE bookings SET status='expired', payment_issue='Charged after the hold moved to \"expired\". Refund or rebook.' WHERE id=?").run(formula.booking.id);
+
+// --- Stripe webhook, signed exactly as Stripe signs it -------------------------
+const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "smoke-webhook-secret";
+const stripeLocal = new Stripe("smoke-not-a-real-key");
+const webhook = (type, object, secret = WEBHOOK_SECRET) => {
+  const payload = JSON.stringify({ id: `evt_${randomUUID()}`, object: "event", type, data: { object } });
+  const header = stripeLocal.webhooks.generateTestHeaderString({ payload, secret });
+  return get("/api/webhooks/stripe", { method: "POST", headers: { "stripe-signature": header, "Content-Type": "application/json" }, body: payload });
+};
+const statusOf = (id) => db.prepare("SELECT status, payment_issue, stripe_refund_id FROM bookings WHERE id=?").get(id);
+// attachPaymentIntent's effect, without calling Stripe's API.
+const attach = (id, pi) => db.prepare("UPDATE bookings SET stripe_payment_intent_id=? WHERE id=?").run(pi, id);
+
+check("webhook rejects a bad signature", (await webhook("payment_intent.succeeded", { id: "pi_x" }, "wrong-secret")).status === 400);
+attach(firstBody.booking.id, "pi_smoke_first");
+check("signed payment_intent.succeeded is accepted", (await webhook("payment_intent.succeeded", { id: "pi_smoke_first", object: "payment_intent" })).status === 200);
+check("webhook confirms the held booking", statusOf(firstBody.booking.id).status === "confirmed");
+await webhook("payment_intent.succeeded", { id: "pi_smoke_first", object: "payment_intent" });
+check("replayed webhook is idempotent", statusOf(firstBody.booking.id).status === "confirmed");
+
+attach(formula.booking.id, "pi_smoke_late");
+db.prepare("UPDATE bookings SET status='expired' WHERE id=?").run(formula.booking.id);
+await webhook("payment_intent.succeeded", { id: "pi_smoke_late", object: "payment_intent" });
+const late = statusOf(formula.booking.id);
+check("payment after a lapsed hold is flagged, not confirmed", late.status === "expired" && Boolean(late.payment_issue));
+
+const refundable = await (await hold({ date: day(5), startTime: "09:00" })).json();
+attach(refundable.booking.id, "pi_smoke_refund");
+await webhook("payment_intent.succeeded", { id: "pi_smoke_refund", object: "payment_intent" });
+await webhook("charge.refunded", { id: "ch_1", object: "charge", refunded: false, payment_intent: "pi_smoke_refund", refunds: { data: [{ id: "re_partial" }] } });
+check("partial refund leaves the booking confirmed", statusOf(refundable.booking.id).status === "confirmed");
+await webhook("charge.refunded", { id: "ch_1", object: "charge", refunded: true, payment_intent: "pi_smoke_refund", refunds: { data: [{ id: "re_full" }] } });
+const refunded = statusOf(refundable.booking.id);
+check("full refund cancels the booking and records the refund", refunded.status === "cancelled" && refunded.stripe_refund_id === "re_full");
+
+// --- Double-booking race: 12 customers, one slot, same instant -------------------
+const race = await Promise.all(Array.from({ length: 12 }, () => hold({ date: day(4), startTime: "12:00", roomId: "podcast-b" })));
+const codes = race.map((r) => r.status);
+check("concurrent holds on one slot: exactly one wins", codes.filter((c) => c === 200).length === 1 && codes.filter((c) => c === 409).length === 11, codes.join(","));
 const exp = Math.floor(Date.now() / 1000) + 3600;
 const adminCookie = `cr_session=${sign({ uid: adminId, exp })}`;
 const userCookie = `cr_session=${sign({ uid: userId, exp })}`;
@@ -139,6 +184,9 @@ const slots = (await (await get(`/api/availability?roomId=content-a&date=${day(3
 check("blocked slot shows closed", slots.find((s) => s.startTime === "11:00")?.unavailableReason === "closed");
 
 await page.goto(`${BASE}/admin/bookings/${firstBody.booking.id}`);
+// A refund would call Stripe's API, which this suite never does.
+const refundBox = page.locator('input[name="refund"]');
+if (await refundBox.count()) await refundBox.uncheck();
 await page.getByRole("button", { name: "Cancel booking" }).click();
 await page.waitForURL(/notice=/);
 check("admin cancel succeeds", (await page.textContent("[role=status]"))?.includes("Cancelled"));
@@ -148,11 +196,31 @@ check("cancelled slot is closed only by the block, not the booking", after.find(
 await page.goto(`${BASE}/admin/activity`);
 check("audit log records the actions", (await page.textContent("table"))?.includes("cancel"));
 
+// --- Keyboard only: the claims on /accessibility have to be true ----------------
+const kb = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+await kb.goto(BASE + "/", { waitUntil: "networkidle" });
+await kb.keyboard.press("Tab");
+check("first Tab lands on the skip link", (await kb.evaluate(() => document.activeElement?.textContent)) === "Skip to content");
+await kb.keyboard.press("Enter");
+check("skip link moves focus to the content", (await kb.evaluate(() => document.activeElement?.id)) === "main-content");
+
+await kb.goto(`${BASE}/rooms/content-b?date=${day(6)}&duration=60`, { waitUntil: "networkidle" });
+await kb.locator("#booking-date").focus();
+let onSlot = false;
+for (let i = 0; i < 30 && !onSlot; i++) {
+  await kb.keyboard.press("Tab");
+  onSlot = await kb.evaluate(() => /^\d{1,2}:00 [AP]M$/.test(document.activeElement?.textContent ?? "") && !document.activeElement.disabled);
+}
+check("a time slot is reachable by Tab", onSlot);
+check("focused control shows a visible ring", (await kb.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)) !== "none");
+await kb.keyboard.press("Enter");
+check("Enter selects the slot", (await kb.evaluate(() => document.activeElement?.getAttribute("aria-pressed"))) === "true");
+
 // --- No horizontal scroll at phone width --------------------------------------
 const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
 await phone.addCookies([{ name: "cr_session", value: adminCookie.split("=").slice(1).join("="), url: BASE }]);
 const p = await phone.newPage();
-for (const path of ["/", "/rooms/podcast-a", "/pricing", "/faq", "/signin", "/admin", "/admin/bookings"]) {
+for (const path of ["/", "/rooms/podcast-a", "/pricing", "/faq", "/contact", "/accessibility", "/signin", "/account", "/admin", "/admin/bookings"]) {
   await p.goto(BASE + path, { waitUntil: "networkidle" });
   const overflow = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check(`no horizontal scroll at 390px on ${path}`, overflow <= 0, `overflow ${overflow}px`);

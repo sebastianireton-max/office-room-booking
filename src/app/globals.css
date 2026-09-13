@@ -123,6 +123,13 @@
   /* Near-WHITE, not near-black. See the re-inversion banner above. */
   --color-text-on-accent: var(--neutral-1000);
 
+  /* Inverse band (the footer): ink ground. neutral-800 text on neutral-50
+     measures 13.9:1, neutral-1000 15.9:1; teal-300 links 10.2:1. */
+  --color-bg-inverse: var(--neutral-50);
+  --color-text-on-inverse: var(--neutral-800);
+  --color-text-on-inverse-strong: var(--neutral-1000);
+  --color-border-inverse: var(--neutral-200);
+
   --color-bg-live: var(--accent-teal-600);
   --color-text-live: var(--accent-teal-700);
 
@@ -172,10 +179,10 @@
   --shadow-accent: 0 8px 24px -8px rgb(15 118 110 / 0.38);
 
   /* ---- Motion ---- */
-  /* MOTION_INTENSITY 6. Every duration and curve is a token so the reduced
-     motion collapse below is a single override, not a hunt through components. */
+  /* MOTION_INTENSITY 3 since 2026-09-13: one entrance (the room board) and
+     press feedback. The overshoot "spring" curve was deleted; hallmark flags
+     bouncy easing on UI state as a generated-UI tell. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration-fast: 160ms;
   --duration-base: 320ms;
   --duration-slow: 640ms;
@@ -200,6 +207,11 @@
   --color-text-accent: var(--color-text-accent);
   --color-border-accent: var(--color-border-accent);
   --color-on-accent: var(--color-text-on-accent);
+
+  --color-inverse: var(--color-bg-inverse);
+  --color-on-inverse: var(--color-text-on-inverse);
+  --color-on-inverse-strong: var(--color-text-on-inverse-strong);
+  --color-border-inverse: var(--color-border-inverse);
 
   --color-live: var(--color-bg-live);
   --color-text-live: var(--color-text-live);
@@ -295,65 +307,34 @@ body::after {
   outline-offset: 2px;
 }
 
-/* ---- Motion layer -------------------------------------------------------
-   MOTION_INTENSITY 6, and design-verified 2.6 requires that a claimed dial is
-   actually shipped. Each animation below is motivated in one line.
+/* teal-600 is only ~3:1 on the ink footer; teal-300 measures 10.2:1 there. */
+.bg-inverse :focus-visible {
+  outline-color: var(--accent-teal-300);
+}
 
-   No library: there is no GSAP or Framer Motion in package.json, and CSS
-   scroll-driven animations cover reveal-on-enter natively. Nothing is animated
-   except transform and opacity (Section 5).
-   ------------------------------------------------------------------------- */
-
-/* Reveal: communicates section hierarchy as the page is read, so a visitor
-   registers one block at a time instead of a wall arriving at once.
- *
- * TRANSFORM ONLY, AND DELIBERATELY SO. The obvious version of this fades in
- * from opacity 0. Do not reintroduce that. A `view()` timeline is INACTIVE
- * whenever the document has no scroll range, and an inactive timeline holds
- * the animation in its before-phase, which with `both` fill pins the element
- * to the keyframe's start state. With opacity in the keyframe that renders
- * the entire page blank. It is not a theoretical edge case: it blanked
- * everything below the proof band on the first run of the 2026-08-30
- * overhaul, it hits any viewport tall enough not to scroll, and it makes the
- * verifier's own full-page screenshots unverifiable (they resize the viewport
- * to the full document height, which removes the scroll range by
- * construction).
- *
- * Restricting the keyframe to translate means the worst failure is a 16px
- * offset. Motion can degrade; it must never hide content. */
-@keyframes reveal-up {
+/* ---- Motion -------------------------------------------------------------
+   One orchestrated entrance: the room board rows settle in once on load, so
+   the eye reads the list top to bottom. Nothing animates on scroll.
+   Transform only, never opacity: if the animation never runs, content must
+   still be visible (this project once blanked a page with an opacity reveal). */
+@keyframes settle {
   from {
-    transform: translate3d(0, 16px, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 10px, 0);
   }
 }
 
-/* Applied via a class rather than a bare selector so nothing animates by
-   accident, and so server components stay server components. */
-@supports (animation-timeline: view()) {
-  .reveal {
-    animation: reveal-up linear both;
-    animation-timeline: view();
-    /* Finish well before the element centres, or content reads as laggy. */
-    animation-range: entry 0% cover 22%;
-  }
+.enter {
+  animation: settle var(--duration-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
 
-/* Reduced motion is not dial-gated and not optional (design-verified 2.6).
-   Everything above collapses to its final state. */
+/* Reduced motion is not optional (design-verified 2.6). */
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

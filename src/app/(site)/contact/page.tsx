@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SITE } from "@/lib/site-config";
 
 export const metadata: Metadata = {
@@ -8,50 +9,55 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+  const a = SITE.address;
+  const rows: [string, React.ReactNode][] = [
+    [
+      "Email",
+      <a key="e" href={`mailto:${SITE.contactEmail}`} className="font-medium text-text-accent underline underline-offset-4">
+        {SITE.contactEmail}
+      </a>,
+    ],
+    [
+      "Phone",
+      <a key="p" href={`tel:${SITE.phone.replace(/[^\d+]/g, "")}`} className="font-medium text-text-primary">
+        {SITE.phone}
+      </a>,
+    ],
+    [
+      "Address",
+      <address key="a" className="not-italic">
+        <span className="block">{a.line1}, {a.line2},</span>
+        <span className="block">{a.city}, {a.region} {a.zip}</span>
+      </address>,
+    ],
+    ["Hours", `${SITE.hours.open} to ${SITE.hours.close}, ${SITE.hours.days}`],
+  ];
+
   return (
-    <main className="flex-1 px-6 py-14">
-      <div className="mx-auto flex max-w-3xl flex-col gap-10">
-        <div className="flex flex-col gap-3">
-          <h1 className="font-display text-5xl font-semibold text-text-primary sm:text-6xl">Contact</h1>
-          <p className="max-w-xl text-base text-text-secondary">
-            Questions about a room, changes to an existing booking, or something the FAQ didn&apos;t
-            cover. Email is fastest and a real person reads it.
+    <main className="flex-1 px-6 pb-20 pt-12 sm:pt-16">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:gap-16">
+        <div className="flex flex-col gap-4">
+          <h1 className="font-display text-5xl font-semibold leading-[1] text-text-primary sm:text-6xl">Contact</h1>
+          <p className="max-w-md text-lg leading-relaxed text-text-secondary">
+            Questions about a room, or a change to a booking. For changes, include the room and the date.
+          </p>
+          <p className="text-text-secondary">
+            Quick answers on holds, payment and hours are in the{" "}
+            <Link href="/faq" className="font-medium text-text-accent underline underline-offset-4">
+              FAQ
+            </Link>
+            .
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div className="flex flex-col gap-2 rounded-token-lg bg-surface p-6 shadow-[var(--shadow-subtle)]">
-            <p className="text-sm font-semibold uppercase tracking-[1.5px] text-text-primary">Email</p>
-            <a href={`mailto:${SITE.contactEmail}`} className="text-base font-medium text-text-accent hover:underline">
-              {SITE.contactEmail}
-            </a>
-            <p className="text-sm text-text-secondary">For booking changes, include your booking date and the room name.</p>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-token-lg bg-surface p-6 shadow-[var(--shadow-subtle)]">
-            <p className="text-sm font-semibold uppercase tracking-[1.5px] text-text-primary">Phone</p>
-            <p className="text-base font-medium text-text-primary">{SITE.phone}</p>
-            <p className="text-sm text-text-secondary">
-              Staffed during open hours, {SITE.hours.open}–{SITE.hours.close}.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-token-lg bg-surface p-6 shadow-[var(--shadow-subtle)]">
-            <p className="text-sm font-semibold uppercase tracking-[1.5px] text-text-primary">Find us</p>
-            <address className="text-base not-italic text-text-primary">
-              <span className="block">{SITE.address.line1}, {SITE.address.line2},</span>
-              <span className="block">{SITE.address.city}, {SITE.address.region} {SITE.address.zip}</span>
-            </address>
-          </div>
-
-          <div className="flex flex-col gap-2 rounded-token-lg bg-surface p-6 shadow-[var(--shadow-subtle)]">
-            <p className="text-sm font-semibold uppercase tracking-[1.5px] text-text-primary">Hours</p>
-            <p className="text-base text-text-primary">
-              {SITE.hours.open} – {SITE.hours.close}
-            </p>
-            <p className="text-sm text-text-secondary">{SITE.hours.days}</p>
-          </div>
-        </div>
+        <dl className="grid grid-cols-1 border-t border-border-default sm:grid-cols-[8rem_minmax(0,1fr)]">
+          {rows.map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="pt-5 text-sm text-text-secondary sm:border-b sm:border-border-subtle sm:pb-5">{label}</dt>
+              <dd className="border-b border-border-subtle pb-5 pt-1 text-lg text-text-primary sm:pt-5">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </main>
   );
