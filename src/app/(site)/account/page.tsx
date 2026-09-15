@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Button } from "@/components/Button";
 import { requireUser } from "@/lib/auth/require";
 import { isAdmin } from "@/lib/auth/session";
 import { listBookingsForUser } from "@/lib/db/bookings-repository";
 import { getRoomById } from "@/lib/rooms-data";
 import { SITE } from "@/lib/site-config";
-import { formatDateLong, formatTime12h, formatUsd, nowInZone } from "@/lib/format";
+import { formatDateLong, formatUsd, nowInZone, timeRange } from "@/lib/format";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { signOut } from "@/app/actions/auth";
 
 export const metadata: Metadata = { title: "Your bookings", robots: { index: false, follow: false } };
 
 const STATUS: Record<string, string> = { confirmed: "Confirmed", completed: "Completed", cancelled: "Cancelled" };
+const rowLink = "inline-flex min-h-11 items-center text-text-accent underline underline-offset-4 hover:text-text-primary";
 
 export default async function AccountPage(props: PageProps<"/account">) {
   const user = await requireUser("/account");
@@ -22,64 +24,65 @@ export default async function AccountPage(props: PageProps<"/account">) {
   const past = bookings.filter((b) => !upcoming.includes(b));
 
   return (
-    <main className="flex-1 px-6 py-14">
-      <div className="mx-auto flex max-w-3xl flex-col gap-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col gap-2">
-            <h1 className="font-display text-5xl font-semibold text-text-primary">Your bookings</h1>
-            <p className="text-text-secondary">Signed in as {user.email}</p>
+    <main className="flex-1 px-6 pb-20 pt-12 sm:pb-24 sm:pt-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10">
+        <div className="flex max-w-3xl flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+            <h1 className="type-page text-text-primary">Your bookings</h1>
+            <div className="flex items-baseline gap-5 text-sm font-medium">
+              {isAdmin(user) && (
+                <Link href="/admin" className={rowLink}>
+                  Admin
+                </Link>
+              )}
+              <form action={signOut}>
+                <button className="inline-flex min-h-11 items-center text-text-secondary underline underline-offset-4 hover:text-text-primary">
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {isAdmin(user) && (
-              <Link href="/admin" className="inline-flex min-h-11 items-center rounded-token-full border border-border-default px-5 text-sm font-medium text-text-primary hover:border-border-accent">
-                Admin
-              </Link>
-            )}
-            <form action={signOut}>
-              <button className="inline-flex min-h-11 items-center px-3 text-sm font-medium text-text-secondary underline underline-offset-4 hover:text-text-primary">
-                Sign out
-              </button>
-            </form>
-          </div>
+          <p className="text-text-secondary">Signed in as {user.email}</p>
         </div>
 
         {denied && (
-          <p role="alert" className="rounded-token-sm border border-border-default bg-surface px-4 py-3 text-sm text-text-primary">
-            That area is for studio staff. Your account doesn&apos;t have access.
+          <p role="alert" className="max-w-3xl rounded-token-sm border border-border-default bg-surface px-4 py-3 text-sm text-text-primary">
+            That area is for studio staff. Your account doesn&rsquo;t have access.
           </p>
         )}
 
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-text-primary">Upcoming</h2>
+        <section className="flex max-w-3xl flex-col gap-4">
+          <h2 className="type-subhead text-text-primary">Upcoming</h2>
           {upcoming.length === 0 ? (
-            <div className="flex flex-col items-start gap-3 rounded-token-md bg-surface p-6">
-              <p className="text-text-secondary">Nothing booked yet. Bookings made with {user.email} show up here.</p>
-              <Link href="/#find" className="inline-flex min-h-11 items-center rounded-token-full bg-accent px-5 text-sm font-semibold text-on-accent hover:bg-accent-hover">
-                Find a room
-              </Link>
+            <div className="flex flex-col items-start gap-4">
+              <p className="text-text-secondary">No upcoming bookings. Bookings made with {user.email} show up here.</p>
+              <Button href="/#rooms">Find a room</Button>
             </div>
           ) : (
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
               {upcoming.map((b) => {
                 const room = getRoomById(b.roomId);
                 return (
-                  <li key={b.id} className="flex flex-col gap-3 rounded-token-md border border-border-subtle bg-surface p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-1">
+                  <li key={b.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                    <div className="flex min-w-0 flex-col gap-1">
                       <p className="font-semibold text-text-primary">{room?.name ?? b.roomId}</p>
-                      <p className="tabular text-sm text-text-secondary">
-                        {formatDateLong(b.date)}, {formatTime12h(b.startTime)} to {formatTime12h(b.endTime)}
+                      <p className="text-sm text-text-secondary">
+                        {formatDateLong(b.date)}, <span className="tabular">{timeRange(b.startTime, b.endTime)}</span>
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        Reference <span className="tabular break-all">{b.id}</span>
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-4 text-sm font-medium">
+                    <div className="flex flex-wrap gap-x-5 text-sm font-medium">
                       {room && (
-                        <a href={googleCalendarUrl(b, room)} className="text-text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                        <a href={googleCalendarUrl(b, room)} className={rowLink} target="_blank" rel="noopener noreferrer">
                           Google Calendar
                         </a>
                       )}
-                      <a href={`/api/bookings/${b.id}/calendar`} className="text-text-accent hover:underline">
+                      <a href={`/api/bookings/${b.id}/calendar`} className={rowLink}>
                         .ics
                       </a>
-                      <Link href={`/confirmation/${b.id}`} className="text-text-accent hover:underline">
+                      <Link href={`/confirmation/${b.id}`} className={rowLink}>
                         Details
                       </Link>
                     </div>
@@ -91,16 +94,16 @@ export default async function AccountPage(props: PageProps<"/account">) {
         </section>
 
         {past.length > 0 && (
-          <section className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold text-text-primary">Past and cancelled</h2>
+          <section className="flex max-w-3xl flex-col gap-4">
+            <h2 className="type-subhead text-text-primary">Past and cancelled</h2>
             <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
               {past.map((b) => (
-                <li key={b.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                <li key={b.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 text-sm">
                   <span className="text-text-primary">
                     {getRoomById(b.roomId)?.name ?? b.roomId} · {formatDateLong(b.date)}
                   </span>
-                  <span className="tabular text-text-secondary">
-                    {STATUS[b.status] ?? b.status} · {formatUsd(b.priceCents)}
+                  <span className="text-text-secondary">
+                    {STATUS[b.status] ?? b.status} · <span className="tabular">{formatUsd(b.priceCents)}</span>
                   </span>
                 </li>
               ))}
@@ -109,7 +112,11 @@ export default async function AccountPage(props: PageProps<"/account">) {
         )}
 
         <p className="text-sm text-text-secondary">
-          Need to change or cancel? <Link href="/contact" className="text-text-accent hover:underline">Contact the studio</Link> with the room and date.
+          Need to change or cancel?{" "}
+          <Link href="/contact" className="text-text-accent underline underline-offset-4">
+            Contact the studio
+          </Link>{" "}
+          with your booking reference.
         </p>
       </div>
     </main>

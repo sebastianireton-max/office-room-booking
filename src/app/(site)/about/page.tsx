@@ -1,36 +1,38 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Button } from "@/components/Button";
 import { SITE } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "One space, six rooms, three ways to work. Built so creators and teams can walk in, plug in, and get to it.",
+    "Content studios with lights and backdrops, podcast rooms with treated walls and mics, and sound-isolated meeting rooms, booked by the hour with no membership.",
   alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {
   return (
-    <main className="flex-1 px-6 py-14">
-      <div className="mx-auto flex max-w-3xl flex-col gap-12">
-        <div className="flex flex-col gap-4">
-          <h1 className="font-display text-5xl font-semibold text-text-primary sm:text-6xl">About {SITE.name}</h1>
+    <main className="flex-1 px-6 pb-20 pt-12 sm:pb-24 sm:pt-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-12">
+        <div className="flex max-w-[65ch] flex-col items-start gap-4">
+          <h1 className="type-page text-text-primary">About {SITE.name}</h1>
           <p className="text-lg leading-relaxed text-text-secondary">
-            This space runs on one belief: the hardest part of making something shouldn&apos;t be finding
-            somewhere to make it. Content studios with the lighting and
-            backdrops already standing, podcast rooms where the acoustics and mics are handled, and
-            sound-isolated meeting rooms where the technology just works.
+            {SITE.name} rents out rooms by the hour. The content studios have lights and backdrops, the
+            podcast rooms have acoustically treated walls and microphones, and the meeting rooms are
+            sound-isolated with a display and a webcam.
           </p>
           <p className="text-lg leading-relaxed text-text-secondary">
-            Everything is booked by the hour, {SITE.hours.open}–{SITE.hours.close}, {SITE.hours.days}. No
-            memberships, no minimums, no gatekeeping. Pick a room, pick a time, pay, and the door is yours.
-            The gear listed on each room&apos;s page is included and set up before you arrive.
+            Rooms are open {SITE.hours.open} to {SITE.hours.close}, {SITE.hours.days}. There is no
+            membership. Pick a room and a time, pay, and the room is yours for that booking. The
+            equipment listed on each room&rsquo;s page is included in the rate.
           </p>
+          <Button href="/#rooms" size="lg" className="mt-2">
+            Browse the rooms
+          </Button>
         </div>
 
         {/* PLACEHOLDER: founder story. The owner supplies the real story,
-            names, and photography — intentionally not invented for them. */}
-        <div className="flex flex-col gap-3 rounded-token-lg border border-dashed border-border-default bg-surface p-6">
+            names, and photography; intentionally not invented for them. */}
+        <div className="flex max-w-[65ch] flex-col gap-3 rounded-token-lg border border-dashed border-border-default bg-surface p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
             Placeholder: your story goes here
           </p>
@@ -40,16 +42,6 @@ export default function AboutPage() {
             people behind the rooms, with a photo, turns this page from a brochure into a reason to book
             here instead of anywhere else. Send it over and it drops straight in.
           </p>
-        </div>
-
-        <div className="flex flex-col items-start gap-4">
-          <h2 className="font-display text-3xl font-semibold text-text-primary">See what&apos;s open</h2>
-          <Link
-            href="/#find"
-            className="rounded-token-full bg-accent px-6 py-3 text-base font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-          >
-            Browse the rooms
-          </Link>
         </div>
       </div>
     </main>
