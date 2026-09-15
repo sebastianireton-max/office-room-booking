@@ -69,11 +69,11 @@ function InnerPaymentForm({ booking, amountCents }: { booking: PublicBooking; am
 export function PaymentStep({
   booking,
   clientSecret,
-  amountCents = booking.priceCents,
+  amountCents,
 }: {
   booking: PublicBooking;
   clientSecret: string;
-  amountCents?: number;
+  amountCents: number;
 }) {
   if (!isStripeClientConfigured()) {
     // Public copy only; the missing env var names are listed in /admin.

@@ -255,8 +255,6 @@ export function BookingFlow({ room }: { room: Room }) {
     </div>
   );
 
-  const paymentProps = booking && clientSecret ? { booking, clientSecret, amountCents: booking.priceCents } : null;
-
   return (
     <div ref={panelRef} className="flex flex-col gap-6 rounded-token-lg border border-border-subtle bg-surface p-5 shadow-[var(--shadow-medium)] sm:p-6">
       <div className="flex items-baseline justify-between gap-4">
@@ -443,8 +441,9 @@ export function BookingFlow({ room }: { room: Room }) {
                   </div>
                 </div>
               )}
-              {/* Contract D: PaymentStep takes amountCents for its "Pay $X" label. */}
-              {paymentProps && <PaymentStep {...paymentProps} />}
+              {booking && clientSecret && (
+                <PaymentStep booking={booking} clientSecret={clientSecret} amountCents={booking.priceCents} />
+              )}
             </>
           )}
         </div>
