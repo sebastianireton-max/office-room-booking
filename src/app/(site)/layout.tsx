@@ -30,8 +30,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
           openingHoursSpecification: {
             "@type": "OpeningHoursSpecification",
             dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            opens: "08:00",
-            closes: "22:00",
+            opens: SITE.hours.opensAt,
+            closes: SITE.hours.closesAt,
           },
           sameAs: Object.values(SITE.social),
         }}
