@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark } from "@/components/Wordmark";
+import { buttonClass } from "@/components/Button";
 
 const NAV = [
   { href: "/#rooms", label: "Rooms" },
   { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
-  { href: "/account", label: "Account" },
+  { href: "/account", label: "Your bookings" },
 ];
 
 /**
@@ -44,8 +45,8 @@ export function SiteHeader() {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex min-h-11 items-center rounded-token-full px-3.5 text-sm font-medium transition-colors ${
-                    active ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
+                  className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-token-full px-3 text-sm font-medium transition-colors lg:px-3.5 ${
+                    active ? "text-text-primary underline decoration-2 underline-offset-8" : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
                   {item.label}
@@ -54,7 +55,7 @@ export function SiteHeader() {
             })}
             <Link
               href={bookHref}
-              className="ml-2 inline-flex min-h-11 items-center whitespace-nowrap rounded-token-full bg-accent px-5 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover active:scale-[0.98] motion-reduce:active:scale-100"
+              className={`ml-2 ${buttonClass()}`}
             >
               Book a room
             </Link>
@@ -84,7 +85,7 @@ export function SiteHeader() {
               <li className="pt-2">
                 <Link
                   href={bookHref}
-                  className="block rounded-token-full bg-accent px-5 py-3 text-center text-base font-semibold text-on-accent"
+                  className={`w-full ${buttonClass("primary", "lg")}`}
                   onClick={() => setOpen(false)}
                 >
                   Book a room

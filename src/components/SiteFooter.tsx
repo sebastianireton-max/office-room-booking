@@ -25,7 +25,7 @@ export function SiteFooter() {
     <footer className="mt-auto bg-inverse px-6 pb-8 pt-16 text-on-inverse sm:pt-20">
       <div className="mx-auto flex max-w-6xl flex-col gap-14">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-end">
-          <p className="font-display text-[clamp(2.25rem,5vw,4rem)] font-semibold leading-[1] text-on-inverse-strong">
+          <p className="font-display text-[clamp(2rem,3.5vw,2.75rem)] font-semibold leading-[1.05] [text-wrap:balance] text-on-inverse-strong">
             Open every day,
             <br />
             {SITE.hours.open} to {SITE.hours.close}.

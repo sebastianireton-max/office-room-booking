@@ -77,19 +77,17 @@
      near-white. Body-size accent TEXT uses teal-700, not teal-600. */
   --accent-teal-300: #7fd4c6; /* wash/tint only — never text          */
   --accent-teal-400: #2aa393; /* wash/tint, and the mark on ink       */
-  --accent-teal-500: #12857a; /* large text (>=24px) only             */
   --accent-teal-600: #0f766e; /* fill + focus ring                    */
   --accent-teal-700: #115e59; /* body-size accent text, fill hover    */
 
   /* Status colors, retuned for the paper substrate. The dark set was tuned to
      sit BRIGHT on near-black and every one of them measured under 2:1 here.
      Verified as a fill carrying a near-white label, and as text on canvas.
-     NOTE: info moved off teal when teal became the accent. Two things that
-     mean different things must not share a colour. */
+     Two things that mean different things must not share a colour, so no
+     status may reuse the teal accent. */
   --status-success: #157f4c; /* label 4.83:1 · as text 4.48:1 */
   --status-warning: #9a6300; /* label 4.85:1 · as text 4.49:1 */
   --status-error: #b3261e; /* label 6.27:1 · as text 5.81:1 */
-  --status-info: #2c5581; /* label 7.40:1 · as text 6.86:1 */
 
   /* ---- Semantics ---- */
   /* Canvas is the warmer, deeper paper; surface is the lighter sheet laid on
@@ -99,15 +97,9 @@
   --color-bg-canvas: var(--neutral-900);
   --color-bg-surface: var(--neutral-1000);
   --color-bg-surface-raised: var(--neutral-800);
-  --color-bg-surface-light: var(--neutral-800);
 
   --color-text-primary: var(--neutral-50); /* 14.72:1 canvas · 15.89:1 surface */
   --color-text-secondary: var(--neutral-300); /*  5.31:1 canvas ·  5.73:1 surface */
-  /* "on-light" means "on a bright fill" (accent/status). On this substrate the
-     accent fill is DARK, so these are the near-white pair. The name is kept
-     because component call sites use it and it is mirrored in Figma. */
-  --color-text-on-light: var(--neutral-1000);
-  --color-text-on-light-secondary: var(--neutral-700);
 
   /* Non-text borders need >= 3:1 against their background. neutral-400
      measures 3.40:1 on canvas, 3.67:1 on surface and 3.11:1 on surface-raised,
@@ -130,36 +122,22 @@
   --color-text-on-inverse-strong: var(--neutral-1000);
   --color-border-inverse: var(--neutral-200);
 
-  --color-bg-live: var(--accent-teal-600);
-  --color-text-live: var(--accent-teal-700);
-
   --color-bg-status-success: var(--status-success);
   --color-bg-status-warning: var(--status-warning);
   --color-bg-status-error: var(--status-error);
-  --color-bg-status-info: var(--status-info);
   --color-text-status-error: var(--status-error); /* 5.81:1 on canvas */
 
   /* Text/icons sitting ON a bright status fill. Near-white measures 4.83:1 on
-     success, 4.85:1 on warning, 6.27:1 on error, 7.40:1 on info. Near-black
-     would fail all four here, which is the mirror image of the bug the
-     2026-08-30 pass fixed on the dark substrate. */
-  --color-text-on-success: var(--neutral-1000);
-
-  /* ---- Spacing ---- */
-  --spacing-2xs: 2px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --spacing-3xl: 64px;
-  --spacing-4xl: 96px;
+     success, 4.85:1 on warning, 6.27:1 on error. Near-black
+     would fail all three here, which is the mirror image of the bug the
+     2026-08-30 pass fixed on the dark substrate. One token for every status
+     fill; on-success stays as an alias until admin migrates to on-status. */
+  --color-text-on-status: var(--neutral-1000);
+  --color-text-on-success: var(--color-text-on-status);
 
   /* ---- Radius ---- */
   /* Unchanged. Awwwards Premium radius system taken whole (design-verified
      2.4: pick one pack's radius and never mix). */
-  --radius-none: 0px;
   --radius-sm: 10px;
   --radius-md: 18px;
   --radius-lg: 28px;
@@ -173,10 +151,6 @@
      light — Section 4.3. */
   --shadow-subtle: 0 1px 2px 0 rgb(90 66 40 / 0.05), 0 1px 3px 0 rgb(90 66 40 / 0.04);
   --shadow-medium: 0 2px 4px -1px rgb(90 66 40 / 0.07), 0 12px 28px -8px rgb(90 66 40 / 0.13);
-  --shadow-strong: 0 4px 8px -2px rgb(90 66 40 / 0.09), 0 24px 56px -12px rgb(90 66 40 / 0.18);
-  /* Accent cast for the primary CTA only. Was --shadow-accent; renamed with the
-     palette so the token name cannot outlive the colour it describes. */
-  --shadow-accent: 0 8px 24px -8px rgb(15 118 110 / 0.38);
 
   /* ---- Motion ---- */
   /* MOTION_INTENSITY 3 since 2026-09-13: one entrance (the room board) and
@@ -184,7 +158,6 @@
      bouncy easing on UI state as a generated-UI tell. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 160ms;
-  --duration-base: 320ms;
   --duration-slow: 640ms;
 }
 
@@ -192,12 +165,9 @@
   --color-canvas: var(--color-bg-canvas);
   --color-surface: var(--color-bg-surface);
   --color-surface-raised: var(--color-bg-surface-raised);
-  --color-surface-light: var(--color-bg-surface-light);
 
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
-  --color-text-on-light: var(--color-text-on-light);
-  --color-text-on-light-secondary: var(--color-text-on-light-secondary);
 
   --color-border-default: var(--color-border-default);
   --color-border-subtle: var(--color-border-subtle);
@@ -213,29 +183,42 @@
   --color-on-inverse-strong: var(--color-text-on-inverse-strong);
   --color-border-inverse: var(--color-border-inverse);
 
-  --color-live: var(--color-bg-live);
-  --color-text-live: var(--color-text-live);
-
+  --color-on-status: var(--color-text-on-status);
   --color-on-success: var(--color-text-on-success);
 
   --color-success: var(--color-bg-status-success);
   --color-warning: var(--color-bg-status-warning);
   --color-error: var(--color-bg-status-error);
-  --color-info: var(--color-bg-status-info);
 
   /* Geist for body and UI. Bricolage Grotesque for display: a variable
      grotesque with real character at large sizes, which is what the pack asks
      for, and not one of the two LLM-default display serifs the packs ban.
      Geist Mono is used narrowly for tabular figures (times, durations, prices)
-     where digit alignment is functional, never as a decorative face. */
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque Variable", "Geist Variable", ui-sans-serif, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, monospace;
+     where digit alignment is functional, never as a decorative face.
+     The --font-*-face variables come from next/font/local in layout.tsx, which
+     also generates size-adjusted fallbacks (Bricolage's is hand-tuned below). */
+  --font-sans: var(--font-geist-face), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage-face), "Bricolage Fallback", ui-sans-serif, sans-serif;
+  --font-mono: var(--font-geist-mono-face), ui-monospace, SFMono-Regular, monospace;
 
   --radius-token-sm: var(--radius-sm);
   --radius-token-md: var(--radius-md);
   --radius-token-lg: var(--radius-lg);
   --radius-token-full: var(--radius-full);
+}
+
+/* Arial sized to Bricolage. next/font's generated fallback (112.88%) ran 6-11%
+   wide and rewrapped headings on swap; 103.5% matches the wordmark and keeps
+   600-weight headings within about 5%. Measured in Chromium, CLS < 0.02 on
+   /, /pricing, /signin and /admin at 390px throttled. Metric overrides are
+   divided by size-adjust, as next does. */
+@font-face {
+  font-family: "Bricolage Fallback";
+  src: local("Arial");
+  size-adjust: 103.5%;
+  ascent-override: 89.86%;
+  descent-override: 26.09%;
+  line-gap-override: 0%;
 }
 
 body {
@@ -244,8 +227,51 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-* {
-  border-color: var(--color-border-default);
+/* Clip, not hidden: hidden would make these scroll containers and break the
+   sticky header and booking column. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* In the base layer so border utilities (border-error, border-accent) win. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border-default);
+  }
+}
+
+/* Heading scale: one H1 size and one display H2 size for every page. */
+@utility type-page {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variation-settings: "opsz" 48;
+  letter-spacing: -0.03em;
+  font-size: var(--text-5xl);
+  line-height: 1;
+  @media (width >= 40rem) {
+    font-size: var(--text-6xl);
+  }
+}
+
+@utility type-section {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variation-settings: "opsz" 48;
+  letter-spacing: -0.03em;
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+  @media (width >= 40rem) {
+    font-size: var(--text-4xl);
+  }
+}
+
+@utility type-subhead {
+  font-size: var(--text-lg);
+  line-height: var(--text-lg--line-height);
+  font-weight: 600;
 }
 
 /* ---- Film grain -----------------------------------------------------------
@@ -257,9 +283,7 @@ body {
    Effective darkening is about 3% (layer opacity 0.55 x rect opacity 0.055
    under multiply), which is inside the rounding on every ratio recorded above;
    the measured values stand, and they were re-measured in a real browser after
-   this was raised from 0.4, not assumed. The grain also dithers the wide
-   gradient in the hero, which is a second reason not to make it fainter.
-   It is pointer-events: none, and a pseudo-element
+   this was raised from 0.4, not assumed. It is pointer-events: none, and a pseudo-element
    is not in the accessibility tree, so it needs no aria handling. It sits
    above the sticky header on purpose: an emulsion that stops at the chrome
    reads as a rendering bug rather than as a surface.
