@@ -3,30 +3,35 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatTime12h, formatUsd, nowInZone } from "@/lib/format";
+import { formatDateShort, formatUsd, nowInZone, priceCents, shortTime } from "@/lib/format";
 import { ROOM_TYPE_LABELS, type Room, type RoomType } from "@/types/domain";
 
 const DURATIONS = [60, 120, 180];
 const MAX_TIMES = 4;
 
-/** "18:00" -> "6 PM". Slots start on the hour, so the minutes are noise here. */
-const shortTime = (hhmm: string) => formatTime12h(hhmm).replace(":00", "");
-
 /**
  * The homepage's one working surface: every room, its specs, its price for the
- * chosen length, and its real open times for the chosen day. Replaced a
- * separate availability panel plus a separate room list that repeated the same
- * six rooms twice.
+ * chosen length, and its real open times for the chosen day.
  */
 export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string }) {
-  const today = nowInZone(timeZone).date;
-  const [date, setDate] = useState(today);
+  // "Today" is read after mount: the page is prerendered, so reading it during
+  // render would freeze the build date into the HTML.
+  const [today, setToday] = useState<string | null>(null);
+  const [date, setDate] = useState<string | null>(null);
   const [duration, setDuration] = useState(60);
   const [type, setType] = useState<RoomType | "all">("all");
   const [open, setOpen] = useState<Record<string, string[]> | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    const now = nowInZone(timeZone).date;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client clock is only known after mount
+    setToday(now);
+    setDate(now);
+  }, [timeZone]);
+
+  useEffect(() => {
+    if (!date) return;
     const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- a new query clears stale times
     setOpen(null);
@@ -43,14 +48,21 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
   const shown = rooms.filter((r) => type === "all" || r.type === type);
   const types = Object.keys(ROOM_TYPE_LABELS) as RoomType[];
   const control = "min-h-11 rounded-token-sm border border-border-default bg-surface px-3 text-text-primary";
+  const withTimes = open ? shown.filter((r) => open[r.id]?.length).length : 0;
 
   return (
     <div className="flex flex-col">
-      <div className="sticky top-[5.25rem] z-30 -mx-3 flex flex-col gap-3 rounded-token-md border border-border-subtle bg-canvas/95 p-3 backdrop-blur-md sm:mx-0 md:flex-row md:items-end md:justify-between">
+      <div className="-mx-3 flex flex-col gap-3 rounded-token-md border border-border-subtle bg-canvas/95 p-3 backdrop-blur-md sm:mx-0 md:sticky md:top-[5.25rem] md:z-30 md:flex-row md:items-end md:justify-between">
         <div className="grid grid-cols-2 gap-3 md:flex md:items-end">
           <label className="flex flex-col gap-1 text-sm font-medium text-text-primary">
             Day
-            <input type="date" min={today} value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className={control} />
+            <input
+              type="date"
+              min={today ?? undefined}
+              value={date ?? ""}
+              onChange={(e) => e.target.value && setDate(e.target.value)}
+              className={control}
+            />
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-text-primary">
             Length
@@ -70,7 +82,7 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
               type="button"
               aria-pressed={type === t}
               onClick={() => setType(t)}
-              className={`min-h-11 whitespace-nowrap rounded-token-full px-2.5 text-sm font-medium transition-colors sm:px-4 ${
+              className={`min-h-11 min-w-11 whitespace-nowrap rounded-token-full px-2.5 text-sm font-medium transition-colors sm:px-4 ${
                 type === t ? "bg-accent text-on-accent" : "text-text-primary hover:bg-surface-raised"
               }`}
             >
@@ -80,16 +92,30 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
         </div>
       </div>
 
-      {error && <p className="py-6 text-error">Could not load open times. Refresh to try again.</p>}
+      <p role="status" className="sr-only">
+        {open && date ? `${shown.length} rooms, ${withTimes} with open times on ${formatDateShort(date)}` : ""}
+      </p>
+      {error && (
+        <p role="alert" className="py-6 text-error">
+          Couldn’t load open times. Change the date or refresh to try again.
+        </p>
+      )}
 
       <ul className="mt-4 flex flex-col" aria-busy={!open && !error}>
         {shown.map((room, i) => {
           const times = open?.[room.id];
           return (
             <li key={room.id} className="enter border-b border-border-subtle" style={{ "--i": i } as React.CSSProperties}>
-              <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-4 py-6 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-8 lg:grid-cols-[13rem_minmax(0,1fr)_minmax(0,22rem)]">
-                <Link href={`/rooms/${room.id}`} tabIndex={-1} aria-hidden="true" className="relative aspect-[4/3] self-start overflow-hidden rounded-token-sm bg-surface">
-                  <Image src={`/rooms/art/${room.id}.webp`} alt="" fill sizes="(max-width: 640px) 104px, 208px" className="object-cover" />
+              <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-4 py-6 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-8 lg:grid-cols-[13rem_minmax(0,21rem)_minmax(0,1fr)]">
+                <Link
+                  href={`/rooms/${room.id}`}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="aspect-[4/3] self-start rounded-token-sm bg-surface p-2"
+                >
+                  <span className="relative block h-full w-full">
+                    <Image src={`/rooms/art/${room.id}.webp`} alt="" fill sizes="(max-width: 640px) 104px, 208px" className="object-contain" />
+                  </span>
                 </Link>
 
                 <div className="flex min-w-0 flex-col gap-1.5">
@@ -101,24 +127,26 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
                       {room.name}
                     </Link>
                   </h3>
-                  <p className="hidden text-text-secondary sm:block">{room.tagline}</p>
-                  <p className="tabular text-base font-semibold text-text-primary">
-                    {formatUsd(room.hourlyRateCents * (duration / 60))}
-                    <span className="font-normal text-text-secondary"> for {duration / 60}h</span>
+                  <p className="line-clamp-1 text-text-secondary sm:line-clamp-none">{room.tagline}</p>
+                  <p className="text-text-secondary">
+                    <span className="tabular text-lg font-semibold text-text-primary">
+                      {formatUsd(priceCents(room.hourlyRateCents, duration))}
+                    </span>{" "}
+                    for {duration / 60} hour{duration > 60 ? "s" : ""}
                   </p>
                 </div>
 
                 <div className="col-span-2 flex flex-col gap-2 lg:col-span-1">
                   <p className="text-sm text-text-secondary">Open start times</p>
                   {!times && !error && <div className="h-11 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />}
-                  {times && times.length === 0 && <p className="text-sm text-text-primary">Nothing open this day. Try another.</p>}
+                  {times && times.length === 0 && <p className="text-sm text-text-primary">No open times this day. Try another date.</p>}
                   {times && times.length > 0 && (
-                    <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_auto] items-center gap-2">
+                    <div className="grid grid-cols-[repeat(4,minmax(0,1fr))_auto] items-center gap-2 lg:grid-cols-[repeat(4,5rem)_auto] lg:justify-start">
                       {times.slice(0, MAX_TIMES).map((t) => (
                         <Link
                           key={t}
                           href={`/rooms/${room.id}?date=${date}&start=${t}&duration=${duration}#book`}
-                          className="tabular inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-token-sm border border-border-default bg-surface px-2 text-sm text-text-primary transition-colors hover:border-accent hover:bg-accent hover:text-on-accent"
+                          className="tabular inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-token-sm border border-border-default bg-surface-raised px-2 text-sm font-medium text-text-primary transition-colors hover:border-border-accent"
                         >
                           {shortTime(t)}
                         </Link>
