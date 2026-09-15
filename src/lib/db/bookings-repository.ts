@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "./client";
 import { getRoomById } from "@/lib/rooms-data";
 import { SITE } from "@/lib/site-config";
-import { addDaysIso, nowInZone } from "@/lib/format";
+import { addDaysIso, nowInZone, priceCents } from "@/lib/format";
 import {
   BOOKING_CONFIG,
   type Booking,
@@ -211,7 +211,7 @@ export function createHold(input: CreateHoldInput): Booking {
     const now = new Date();
     const nowIso = now.toISOString();
     const holdExpiresAt = new Date(now.getTime() + BOOKING_CONFIG.holdDurationMinutes * 60_000).toISOString();
-    const priceCents = Math.round(room.hourlyRateCents * (input.durationMinutes / 60));
+    const price = priceCents(room.hourlyRateCents, input.durationMinutes);
 
     db.prepare(
       `INSERT INTO bookings
@@ -229,7 +229,7 @@ export function createHold(input: CreateHoldInput): Booking {
       input.startTime,
       endTime,
       input.durationMinutes,
-      priceCents,
+      price,
       holdExpiresAt,
       `${id}@clockroom`,
       nowIso,
@@ -312,7 +312,9 @@ export function confirmBookingByPaymentIntent(
       `payment_intent.succeeded for ${paymentIntentId} but booking ${row.id} is "${row.status}". Not confirming; flagged for the admin.`
     );
     db.prepare(`UPDATE bookings SET payment_issue = ?, updated_at = ? WHERE id = ?`).run(
-      `Charged after the hold moved to "${row.status}". Refund or rebook.`,
+      row.status === "expired"
+        ? "Paid after the hold had ended, so the slot was released."
+        : `Paid after the booking was ${row.status}.`,
       now,
       row.id
     );
@@ -369,9 +371,11 @@ export function listBookings(filters: BookingFilters, limit = 200): Booking[] {
   if (filters.roomId) add("room_id = ?", filters.roomId);
   if (filters.from) add("date >= ?", filters.from);
   if (filters.to) add("date <= ?", filters.to);
-  if (filters.q) {
+  // Substring match, so the 8-character reference customers see finds the full id.
+  const q = filters.q?.trim().replace(/[%_]/g, "");
+  if (q) {
     where.push("(customer_name LIKE ? OR customer_email LIKE ? OR id LIKE ?)");
-    const like = `%${filters.q.replace(/[%_]/g, "")}%`;
+    const like = `%${q}%`;
     params.push(like, like, like);
   }
   const sql = `SELECT * FROM bookings ${where.length ? `WHERE ${where.join(" AND ")}` : ""}

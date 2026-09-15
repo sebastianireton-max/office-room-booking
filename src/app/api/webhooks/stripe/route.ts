@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import {
@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
   try {
     event = getStripe().webhooks.constructEvent(await req.text(), signature, webhookSecret);
   } catch (err) {
-    console.error("Stripe webhook signature verification failed", err);
+    // Message only: the error object carries the raw event payload (customer data).
+    console.error("Stripe webhook signature verification failed:", (err as Error).message);
     return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
 
@@ -37,11 +38,15 @@ export async function POST(req: NextRequest) {
       // Only on the first confirmation, so Stripe's retries do not re-send.
       const room = getRoomById(result.booking.roomId);
       if (result.newlyConfirmed && room) {
-        const sent = await sendBookingConfirmation(result.booking, room).catch((err) => {
-          console.error("Confirmation email failed", err);
-          return false;
+        const { booking } = result;
+        // After the 200, so a slow mail API never makes Stripe time out and retry.
+        after(async () => {
+          const sent = await sendBookingConfirmation(booking, room).catch((err: Error) => {
+            console.error(`Confirmation email failed for ${booking.id}:`, err.message);
+            return false;
+          });
+          if (sent) markConfirmationSent(booking.id);
         });
-        if (sent) markConfirmationSent(result.booking.id);
       }
       break;
     }

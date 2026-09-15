@@ -5,9 +5,11 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { useRouter } from "next/navigation";
 import { getClientStripe, isStripeClientConfigured } from "@/lib/stripe-client";
 import { Button } from "@/components/Button";
+import { formatUsd } from "@/lib/format";
+import { SITE } from "@/lib/site-config";
 import type { PublicBooking } from "@/lib/public-booking";
 
-function InnerPaymentForm({ booking }: { booking: PublicBooking }) {
+function InnerPaymentForm({ booking, amountCents }: { booking: PublicBooking; amountCents: number }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -29,11 +31,12 @@ function InnerPaymentForm({ booking }: { booking: PublicBooking }) {
     });
 
     if (submitError) {
-      // Matches the design package's card-decline copy, Section 6.6.
+      // Card and field errors carry Stripe's specific message; anything else gets
+      // a neutral line, because we cannot know whether a charge happened.
       setError(
         submitError.type === "card_error" || submitError.type === "validation_error"
-          ? submitError.message ?? "Payment declined. Your card was declined by your bank. Try a different card or contact your bank."
-          : "Something went wrong saving your booking. Your card has not been charged. Please try again."
+          ? submitError.message ?? "Your bank declined this card. Try another card or contact your bank."
+          : `Payment didn't go through. Check your details and try again. If you see a charge without a confirmation, email ${SITE.contactEmail}.`
       );
       setSubmitting(false);
       return;
@@ -55,23 +58,33 @@ function InnerPaymentForm({ booking }: { booking: PublicBooking }) {
           {error}
         </p>
       )}
-      <Button type="submit" disabled={!stripe || submitting} className="w-full">
-        {submitting ? "Processing your payment, don't close this window…" : "Confirm & Pay"}
+      <Button type="submit" size="lg" disabled={!stripe || submitting} className="w-full">
+        {submitting ? "Processing…" : `Pay ${formatUsd(amountCents)}`}
       </Button>
+      {submitting && <p className="text-center text-sm text-text-secondary">Keep this page open.</p>}
     </form>
   );
 }
 
-export function PaymentStep({ booking, clientSecret }: { booking: PublicBooking; clientSecret: string }) {
+export function PaymentStep({
+  booking,
+  clientSecret,
+  amountCents = booking.priceCents,
+}: {
+  booking: PublicBooking;
+  clientSecret: string;
+  amountCents?: number;
+}) {
   if (!isStripeClientConfigured()) {
+    // Public copy only; the missing env var names are listed in /admin.
     return (
-      <div className="flex flex-col gap-2 rounded-token-md border border-border-default bg-surface-raised p-4 text-sm text-text-secondary">
-        <p className="font-medium text-text-primary">Stripe isn&apos;t connected yet.</p>
+      <div className="flex flex-col gap-1 rounded-token-md border border-border-default bg-surface-raised p-4 text-sm text-text-secondary">
+        <p className="font-medium text-text-primary">Online payment isn&rsquo;t switched on yet.</p>
         <p>
-          Add <code className="text-text-accent">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and{" "}
-          <code className="text-text-accent">STRIPE_SECRET_KEY</code> to your own <code>.env.local</code> (see
-          the README) to enable real payments. This screen will render the Stripe Payment Element automatically
-          once both keys are set.
+          Please contact us to book:{" "}
+          <a href={`mailto:${SITE.contactEmail}`} className="font-medium text-text-accent underline underline-offset-4">
+            {SITE.contactEmail}
+          </a>
         </p>
       </div>
     );
@@ -83,8 +96,8 @@ export function PaymentStep({ booking, clientSecret }: { booking: PublicBooking;
       options={{
         clientSecret,
         appearance: {
-          // RESTYLE 2026-08-31 — values mirror globals.css tokens (sun accent,
-          // warm-paper neutrals). Stripe Elements renders in a CROSS-ORIGIN
+          // Values mirror globals.css tokens (teal accent, warm-paper
+          // neutrals). Stripe Elements renders in a CROSS-ORIGIN
           // IFRAME, so these must be literal values: CSS custom properties
           // from this document are not visible inside it, and nothing here
           // updates itself when the token layer changes. This block is the
@@ -112,7 +125,7 @@ export function PaymentStep({ booking, clientSecret }: { booking: PublicBooking;
         },
       }}
     >
-      <InnerPaymentForm booking={booking} />
+      <InnerPaymentForm booking={booking} amountCents={amountCents} />
     </Elements>
   );
 }

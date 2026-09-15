@@ -2,8 +2,7 @@ import { z } from "zod";
 
 /**
  * Server-side input validation for every API route. Client-side validation
- * is a UX convenience only — this is the real security boundary. Design
- * package Section 10.5.
+ * is a UX convenience only — this is the real security boundary.
  */
 
 export const availabilityQuerySchema = z.object({
@@ -12,24 +11,28 @@ export const availabilityQuerySchema = z.object({
   durationMinutes: z.coerce.number().int().min(30).max(480),
 });
 
+const NAME = "Enter your name.";
+const EMAIL = "Enter an email like name@example.com.";
+
+// Customer field messages are shown next to the form fields, so they are plain English.
 export const createHoldSchema = z.object({
   roomId: z.string().min(1).max(64),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "startTime must be HH:mm"),
   durationMinutes: z.coerce.number().int().min(30).max(480),
-  customerName: z.string().trim().min(1).max(200),
-  customerEmail: z.string().trim().email().max(320),
+  customerName: z.string({ error: NAME }).trim().min(1, NAME).max(200, "Use 200 characters or fewer."),
+  customerEmail: z.string({ error: EMAIL }).trim().email(EMAIL).max(320, EMAIL),
   customerPhone: z
-    .string()
+    .string({ error: "Enter a phone number, or leave it blank." })
     .trim()
-    .max(40)
+    .max(40, "Use 40 characters or fewer.")
     .optional()
     .nullable()
     .transform((v) => (v ? v : null)),
 });
 
+export const CUSTOMER_FIELDS = ["customerName", "customerEmail", "customerPhone"] as const;
+
 export const createPaymentIntentSchema = z.object({
   bookingId: z.string().uuid(),
 });
-
-export type CreateHoldInput = z.infer<typeof createHoldSchema>;

@@ -3,13 +3,13 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/Button";
-import { formatDateLong, formatTime12h, formatUsd } from "@/lib/format";
+import { formatDateShort, formatUsd, timeRange, zoneAbbrev, zoneLabel } from "@/lib/format";
 import { googleCalendarUrl, outlookCalendarUrl } from "@/lib/calendar-links";
 import { SITE } from "@/lib/site-config";
 import type { PublicBooking } from "@/lib/public-booking";
-import type { Room } from "@/types/domain";
+import type { BookingStatus, Room } from "@/types/domain";
 
-type Status = "loading" | "processing" | "slow" | "confirmed" | "not-found" | "unconfirmed" | "error";
+type Status = "loading" | "processing" | "slow" | "not-found" | "error" | Exclude<BookingStatus, "pending_payment">;
 
 export default function ConfirmationPage(props: PageProps<"/confirmation/[bookingId]">) {
   const { bookingId } = use(props.params);
@@ -33,7 +33,6 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
         setBooking(data.booking);
         setRoom(data.room);
 
-        if (data.booking.status === "confirmed") return setStatus("confirmed");
         if (data.booking.status === "pending_payment") {
           if (attempts < 12) {
             setStatus("processing");
@@ -41,7 +40,7 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
           } else setStatus("slow");
           return;
         }
-        setStatus("unconfirmed");
+        setStatus(data.booking.status);
       } catch {
         if (!cancelled) setStatus("error");
       }
@@ -53,97 +52,147 @@ export default function ConfirmationPage(props: PageProps<"/confirmation/[bookin
     };
   }, [bookingId]);
 
+  const ref = bookingId.slice(0, 8);
   const shell = (children: React.ReactNode) => (
-    <main className="flex flex-1 items-center justify-center px-6 py-20">
-      <div className="flex w-full max-w-lg flex-col gap-4">{children}</div>
+    <main className="flex flex-1 justify-center px-4 pt-12 pb-20 sm:px-6 sm:pt-16 sm:pb-24">
+      <div className="flex w-full max-w-xl flex-col gap-5">{children}</div>
     </main>
   );
   const contact = (
-    <a href={`mailto:${SITE.contactEmail}?subject=Booking ${bookingId}`} className="font-medium text-text-accent hover:underline">
+    <a href={`mailto:${SITE.contactEmail}?subject=Booking ${ref}`} className="font-medium text-text-accent underline underline-offset-4">
       {SITE.contactEmail}
     </a>
   );
+  const message = (title: string, body: React.ReactNode, cta = true) =>
+    shell(
+      <>
+        <h1 className="type-page text-text-primary [text-wrap:balance]">{title}</h1>
+        <p className="max-w-[62ch] text-text-secondary">{body}</p>
+        {cta && (
+          <Button href="/#rooms" size="lg" className="w-fit">
+            See open times
+          </Button>
+        )}
+      </>
+    );
 
   if (status === "loading" || status === "processing") {
     // Skeleton in the shape of the confirmed card, not a spinner.
     return shell(
       <div role="status" className="flex flex-col gap-4">
-        <p className="tabular text-sm text-text-secondary">Confirming your payment. Keep this page open.</p>
+        <p className="text-sm text-text-secondary">Confirming your payment. Keep this page open.</p>
         <div className="h-12 w-3/4 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
         <div className="flex flex-col gap-2 border-y border-border-subtle py-5">
-          <div className="h-6 w-1/2 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
-          <div className="h-5 w-2/3 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
+          <div className="h-9 w-2/3 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
+          <div className="h-5 w-1/2 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />
         </div>
         <div className="h-11 animate-pulse rounded-token-full bg-surface-raised motion-reduce:animate-none" />
       </div>
     );
   }
   if (status === "slow") {
-    return shell(
+    return message(
+      "Payment is still processing",
       <>
-        <h1 className="font-display text-4xl font-semibold text-text-primary">Payment is still processing</h1>
-        <p className="text-text-secondary">
-          Some cards take a little longer. Your slot is held while it completes, and the confirmation email arrives as soon as it
-          does. Refresh this page in a minute, or write to {contact} with reference {bookingId}.
-        </p>
-      </>
+        Some cards take a little longer. Your slot is held while it completes, and the confirmation email arrives as soon as it
+        does. Refresh this page in a minute, or write to {contact} with reference <span className="tabular">{ref}</span>.
+      </>,
+      false
     );
   }
   if (status === "not-found") {
-    return shell(
+    return message("Booking not found", "Check the link from your email. If you just paid, refresh in a few seconds.");
+  }
+  if (status === "error") {
+    return message(
+      "We couldn’t load this booking",
       <>
-        <h1 className="font-display text-4xl font-semibold text-text-primary">Booking not found</h1>
-        <p className="text-text-secondary">Check the link from your email. If you just paid, refresh in a few seconds.</p>
-        <Button href="/" className="w-fit">Back to rooms</Button>
+        Refresh the page to try again. If it keeps happening, write to {contact} with reference{" "}
+        <span className="tabular">{ref}</span>.
+      </>,
+      false
+    );
+  }
+  if (status === "cancelled") {
+    return message(
+      "This booking was cancelled",
+      <>
+        If a refund was issued, it goes back to the card you paid with. Questions: {contact}, reference{" "}
+        <span className="tabular">{ref}</span>.
       </>
     );
   }
+  if (status === "completed") {
+    return message("This booking has already taken place", <>Questions: {contact}, reference <span className="tabular">{ref}</span>.</>);
+  }
   if (status !== "confirmed" || !booking || !room) {
-    // Not "your card was not charged": in the lapsed-hold case it was, and the
-    // studio has been flagged to refund or rebook.
-    return shell(
+    // Expired, including a hold that lapsed and was paid anyway (payment_issue).
+    return message(
+      "This booking isn’t confirmed",
       <>
-        <h1 className="font-display text-4xl font-semibold text-text-primary">This booking isn&apos;t confirmed</h1>
-        <p className="text-text-secondary">
-          The hold on this slot ended before payment completed. If you were charged, the studio has been alerted and will refund
-          or rebook you. Questions: {contact}, reference {bookingId}.
-        </p>
-        <Button href="/#find" className="w-fit">Find another time</Button>
+        The hold on this slot ended before payment went through. If your card was charged anyway, email {contact} with reference{" "}
+        <span className="tabular">{ref}</span> and we will refund or rebook you.
       </>
     );
   }
 
+  const { line1, line2, city, region, zip } = SITE.address;
   return shell(
     <>
-      <p className="tabular text-sm text-text-accent">Confirmed</p>
-      <h1 className="font-display text-5xl font-semibold leading-[1] text-text-primary">You&apos;re booked.</h1>
-      <div className="flex flex-col gap-1 border-y border-border-subtle py-5">
-        <p className="text-xl font-semibold text-text-primary">{room.name}</p>
-        <p className="tabular text-text-primary">
-          {formatDateLong(booking.date)}, {formatTime12h(booking.startTime)} to {formatTime12h(booking.endTime)}
+      {/* Not text-success: that green measures 4.48:1 as small text on the canvas. */}
+      <p className="text-sm font-semibold text-text-primary">Confirmed</p>
+      <h1 className="type-page text-text-primary [text-wrap:balance]">{room.name}</h1>
+      <div className="flex flex-col gap-2 border-y border-border-subtle py-5">
+        <p className="text-[2rem] font-semibold leading-tight tabular-nums text-text-primary sm:text-4xl">
+          {formatDateShort(booking.date)}
+          <br />
+          {timeRange(booking.startTime, booking.endTime)}
+        </p>
+        <p className="text-sm text-text-secondary">
+          {zoneLabel(SITE.timeZone)} ({zoneAbbrev(SITE.timeZone, booking.date)})
         </p>
         <p className="tabular text-sm text-text-secondary">
-          Paid {formatUsd(booking.priceCents)} · Ref {booking.id.slice(0, 8)}
+          Paid {formatUsd(booking.priceCents)} · Ref {ref}
         </p>
       </div>
-      <p className="text-sm text-text-secondary">Add it to your calendar now; the confirmation email carries the same invite.</p>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button variant="secondary" href={googleCalendarUrl(booking, room)} className="flex-1">
-          Google Calendar
-        </Button>
-        <Button variant="secondary" href={outlookCalendarUrl(booking, room)} className="flex-1">
-          Outlook
-        </Button>
-        <a
-          href={`/api/bookings/${booking.id}/calendar`}
-          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-token-full border border-border-default bg-surface px-6 text-sm font-semibold text-text-primary hover:border-border-accent hover:text-text-accent"
-        >
-          Apple / .ics
-        </a>
+
+      <div className="flex flex-col gap-1">
+        <h2 className="type-subhead text-text-primary">Where to go</h2>
+        <address className="not-italic text-text-secondary">
+          {SITE.name}
+          <br />
+          {line1}, {line2}
+          <br />
+          {city}, {region} {zip}
+        </address>
+        <p className="text-text-secondary">
+          <a href={`tel:${SITE.phone}`} className="text-text-accent underline underline-offset-4">{SITE.phone}</a>
+          {" · "}
+          {contact}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-text-secondary">Add it to your calendar now; the confirmation email carries the same invite.</p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="secondary" href={googleCalendarUrl(booking, room)} external className="flex-1">
+            Google Calendar
+          </Button>
+          <Button variant="secondary" href={outlookCalendarUrl(booking, room)} external className="flex-1">
+            Outlook
+          </Button>
+          <Button variant="secondary" href={`/api/bookings/${booking.id}/calendar`} download className="flex-1">
+            Apple / .ics
+          </Button>
+        </div>
       </div>
       <div className="flex gap-6 pt-2 text-sm">
-        <Link href="/account" className="text-text-secondary hover:text-text-primary hover:underline">Your bookings</Link>
-        <Link href="/" className="text-text-secondary hover:text-text-primary hover:underline">Back to rooms</Link>
+        <Link href="/account" className="inline-flex min-h-11 items-center text-text-secondary hover:text-text-primary hover:underline">
+          Your bookings
+        </Link>
+        <Link href="/#rooms" className="inline-flex min-h-11 items-center text-text-secondary hover:text-text-primary hover:underline">
+          Back to rooms
+        </Link>
       </div>
     </>
   );
