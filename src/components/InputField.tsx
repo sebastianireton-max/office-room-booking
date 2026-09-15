@@ -20,7 +20,7 @@ export function InputField({ label, error, hint, id, className = "", ...rest }: 
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium tracking-[0.1px] text-text-primary">
+      <label htmlFor={inputId} className="text-sm font-medium text-text-primary">
         {label}
       </label>
       <input

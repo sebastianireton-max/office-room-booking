@@ -1,54 +1,75 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { StepIndicator } from "@/components/StepIndicator";
-import { TimeSlotChip } from "@/components/TimeSlotChip";
-import { BOOKING_CONFIG } from "@/types/domain";
 import { InputField } from "@/components/InputField";
 import { Button } from "@/components/Button";
 import { PaymentStep } from "./PaymentStep";
-import { formatDateLong, formatTime12h, formatUsd, nowInZone } from "@/lib/format";
+import { DURATIONS, TimeStep } from "./TimeStep";
+import { BOOKING_CONFIG } from "@/types/domain";
+import { addDaysIso, formatDateLong, formatDateShort, formatUsd, nowInZone, priceCents, shortTime, timeRange, zoneAbbrev } from "@/lib/format";
 import { SITE } from "@/lib/site-config";
 import type { PublicBooking } from "@/lib/public-booking";
 import type { Room, TimeSlot } from "@/types/domain";
 
-const STEPS = [{ label: "Date & time" }, { label: "Your details" }, { label: "Payment" }];
-const DURATIONS = [60, 120, 180];
+/*
+ * SECURITY-RELEVANT (payment flow, guardrail 2): this component only renders
+ * and routes. Price, hold and confirmation truth all live on the server; the
+ * figures shown here are previews until the hold returns the booking.
+ */
 
-interface FormState {
+const STEPS = [{ label: "Time" }, { label: "Details" }, { label: "Review & pay" }];
+const ENDING_SOON_MS = 2 * 60_000;
+
+interface Details {
   name: string;
   email: string;
   phone: string;
 }
 
+const addMinutes = (hhmm: string, minutes: number) => {
+  const total = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5)) + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+const hoursLabel = (minutes: number) => `${minutes / 60} hour${minutes === 60 ? "" : "s"}`;
+const clockInZone = (iso: string) =>
+  `${new Date(iso).toLocaleTimeString("en-US", { timeZone: SITE.timeZone, hour: "numeric", minute: "2-digit" })} ${zoneAbbrev(SITE.timeZone, new Date(iso))}`;
+
 export function BookingFlow({ room }: { room: Room }) {
   const params = useSearchParams();
   const today = nowInZone(SITE.timeZone).date;
+  const maxDate = addDaysIso(today, BOOKING_CONFIG.maxAdvanceDays);
   const paramDate = params.get("date");
   const paramDuration = Number(params.get("duration"));
-  // A time picked in the homepage finder arrives as ?date=&start=&duration=.
-  const pendingStart = useRef(/^\d{2}:\d{2}$/.test(params.get("start") ?? "") ? params.get("start") : null);
+  // A time picked on the homepage board arrives as ?date=&start=&duration=.
+  const pendingStart = useRef(/^\d{2}:00$/.test(params.get("start") ?? "") ? params.get("start") : null);
 
   const [stepIndex, setStepIndex] = useState(0);
-  const [date, setDate] = useState(paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate) && paramDate >= today ? paramDate : today);
+  const [date, setDate] = useState(paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate) && paramDate >= today && paramDate <= maxDate ? paramDate : today);
   const [durationMinutes, setDurationMinutes] = useState(DURATIONS.includes(paramDuration) ? paramDuration : 60);
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(true);
-  const [slotsError, setSlotsError] = useState<string | null>(null);
   const [selectedStart, setSelectedStart] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [slotNotice, setSlotNotice] = useState<string | null>(null);
 
-  const [form, setForm] = useState<FormState>({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState<Details>({ name: "", email: "", phone: "" });
   const [signedInAs, setSignedInAs] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<Partial<FormState>>({});
+  const [formErrors, setFormErrors] = useState<Partial<Details>>({});
   const [creatingHold, setCreatingHold] = useState(false);
   const [holdError, setHoldError] = useState<string | null>(null);
 
   const [booking, setBooking] = useState<PublicBooking | null>(null);
+  const [heldDetails, setHeldDetails] = useState<Details | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paymentIntentError, setPaymentIntentError] = useState<string | null>(null);
+  const [intentError, setIntentError] = useState<string | null>(null);
   const [creatingIntent, setCreatingIntent] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [now, setNow] = useState(0);
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const focusStep = useRef(false);
+  const focusInvalid = useRef(false);
 
   // Signed-in customers get their Google name and email filled in.
   useEffect(() => {
@@ -62,56 +83,93 @@ export function BookingFlow({ room }: { room: Room }) {
       .catch(() => {});
   }, []);
 
+  // After a user-driven step change, move focus into the new step and keep it clear of the sticky header.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new query invalidates the old selection
-    setSelectedStart(null);
-    setLoadingSlots(true);
-    setSlotsError(null);
-    const controller = new AbortController();
-
-    fetch(`/api/availability?roomId=${room.id}&date=${date}&durationMinutes=${durationMinutes}`, { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
-      .then((data: { slots: TimeSlot[] }) => {
-        setSlots(data.slots ?? []);
-        const wanted = pendingStart.current;
-        pendingStart.current = null;
-        if (wanted && data.slots.some((s) => s.startTime === wanted && s.available)) setSelectedStart(wanted);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") setSlotsError("Couldn't load availability. Please try again.");
-      })
-      .finally(() => setLoadingSlots(false));
-
-    return () => controller.abort();
-  }, [room.id, date, durationMinutes]);
+    if (!focusStep.current) return;
+    focusStep.current = false;
+    const target = panelRef.current?.querySelector<HTMLElement>("[data-step-focus]") ?? headingRef.current;
+    target?.scrollIntoView({ block: "center" });
+    target?.focus({ preventScroll: true });
+  }, [stepIndex]);
 
   useEffect(() => {
-    if (!booking?.holdExpiresAt) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing the countdown when the hold goes away
-      setSecondsLeft(null);
-      return;
-    }
-    const tick = () =>
-      setSecondsLeft(Math.max(0, Math.floor((new Date(booking.holdExpiresAt!).getTime() - Date.now()) / 1000)));
-    tick();
-    const id = setInterval(tick, 1000);
+    if (!focusInvalid.current) return;
+    focusInvalid.current = false;
+    panelRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [formErrors]);
+
+  const expiresAt = stepIndex === 2 ? booking?.holdExpiresAt : null;
+  useEffect(() => {
+    if (!expiresAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [booking?.holdExpiresAt]);
+  }, [expiresAt]);
 
-  const priceCents = useMemo(() => Math.round(room.hourlyRateCents * (durationMinutes / 60)), [room.hourlyRateCents, durationMinutes]);
+  const onSlotsLoaded = useCallback((slots: TimeSlot[]) => {
+    const wanted = pendingStart.current;
+    if (!wanted) return;
+    pendingStart.current = null;
+    if (slots.some((s) => s.startTime === wanted && s.available)) {
+      setSelectedStart(wanted);
+      setStepIndex(1); // No focus move: this is page load, not a user action.
+    } else {
+      setSlotNotice(`${shortTime(wanted)} is no longer open. Pick another time.`);
+    }
+  }, []);
 
-  function validateForm(): boolean {
-    const errors: Partial<FormState> = {};
-    if (!form.name.trim()) errors.name = "Enter your name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = "Enter a valid email.";
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  function goTo(step: number) {
+    focusStep.current = true;
+    setStepIndex(step);
   }
 
-  async function handleDetailsContinue() {
-    if (!selectedStart || !validateForm()) return;
-    setCreatingHold(true);
+  function backToTimes(notice: string | null) {
+    setSelectedStart(null);
+    setSlotNotice(notice);
+    setRefreshKey((k) => k + 1);
+    goTo(0);
+  }
+
+  const endTime = selectedStart ? addMinutes(selectedStart, durationMinutes) : null;
+  const total = priceCents(room.hourlyRateCents, durationMinutes);
+  const selectionText = selectedStart && endTime ? `${formatDateShort(date)} · ${timeRange(selectedStart, endTime)}` : null;
+  const holdMs = booking?.holdExpiresAt && now ? Date.parse(booking.holdExpiresAt) - now : null;
+  const holdEnded = holdMs !== null && holdMs <= 0;
+  const holdEndingSoon = holdMs !== null && holdMs > 0 && holdMs < ENDING_SOON_MS;
+  // The visitor's own unexpired hold should still look open to them when they come back to change something.
+  const heldStart =
+    booking && !holdEnded && booking.date === date && booking.durationMinutes === durationMinutes ? booking.startTime : null;
+
+  async function handleDetailsSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!selectedStart || creatingHold) return;
+    const details = { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() };
+    const errors: Partial<Details> = {};
+    if (!details.name) errors.name = "Enter your name.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(details.email)) errors.email = "Enter an email like name@example.com.";
     setHoldError(null);
+    focusInvalid.current = Object.keys(errors).length > 0;
+    setFormErrors(errors);
+    if (focusInvalid.current) return;
+
+    const sameSlot =
+      booking &&
+      booking.holdExpiresAt &&
+      Date.parse(booking.holdExpiresAt) > Date.now() &&
+      booking.date === date &&
+      booking.startTime === selectedStart &&
+      booking.durationMinutes === durationMinutes;
+    if (sameSlot && heldDetails && JSON.stringify(heldDetails) === JSON.stringify(details)) {
+      goTo(2);
+      if (!clientSecret && !creatingIntent) void createPaymentIntent(booking.id);
+      return;
+    }
+    if (sameSlot) {
+      // The server would refuse a second hold on a slot this visitor already holds.
+      setHoldError(`This time is held for you with your earlier details until ${clockInZone(booking.holdExpiresAt!)}. Use those details, or pick a different time.`);
+      return;
+    }
+
+    setCreatingHold(true);
     try {
       const res = await fetch("/api/bookings/hold", {
         method: "POST",
@@ -121,26 +179,28 @@ export function BookingFlow({ room }: { room: Room }) {
           date,
           startTime: selectedStart,
           durationMinutes,
-          customerName: form.name.trim(),
-          customerEmail: form.email.trim(),
-          customerPhone: form.phone.trim() || null,
+          customerName: details.name,
+          customerEmail: details.email,
+          customerPhone: details.phone || null,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setHoldError(data.error ?? "Something went wrong. Please try again.");
-        if (res.status === 409 || res.status === 400) {
-          // Slot taken or no longer bookable: back to step 1 to pick again.
-          setSelectedStart(null);
-          setStepIndex(0);
-        }
-        return;
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBooking(data.booking);
+        setHeldDetails(details);
+        setClientSecret(null);
+        goTo(2);
+        await createPaymentIntent(data.booking.id);
+      } else if (res.status === 400 && data.fieldErrors) {
+        focusInvalid.current = true;
+        setFormErrors({ name: data.fieldErrors.customerName, email: data.fieldErrors.customerEmail, phone: data.fieldErrors.customerPhone });
+      } else if (res.status === 409 || res.status === 400) {
+        backToTimes(data.error ?? "That time is no longer open. Pick another time.");
+      } else {
+        setHoldError(data.error ?? "Something went wrong saving your booking. You have not been charged. Please try again.");
       }
-      setBooking(data.booking);
-      setStepIndex(2);
-      await createPaymentIntent(data.booking.id);
     } catch {
-      setHoldError("Something went wrong saving your booking. Your card has not been charged. Please try again.");
+      setHoldError("Something went wrong saving your booking. You have not been charged. Please try again.");
     } finally {
       setCreatingHold(false);
     }
@@ -148,132 +208,104 @@ export function BookingFlow({ room }: { room: Room }) {
 
   async function createPaymentIntent(bookingId: string) {
     setCreatingIntent(true);
-    setPaymentIntentError(null);
+    setIntentError(null);
     try {
       const res = await fetch("/api/checkout/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setPaymentIntentError(data.error ?? "Could not start payment.");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.clientSecret) {
+        setIntentError(data.error ?? "Payment couldn't start. Try again, or go back and pick another time.");
         return;
       }
-      setClientSecret(data.clientSecret ?? null);
-      if (!data.clientSecret) setPaymentIntentError(data.error ?? null);
+      setClientSecret(data.clientSecret);
+      // Starting payment extends the hold on the server; show that deadline, not the original one.
+      if (data.holdExpiresAt) setBooking((b) => (b && b.id === bookingId ? { ...b, holdExpiresAt: data.holdExpiresAt } : b));
     } catch {
-      setPaymentIntentError("Could not start payment. Please try again.");
+      setIntentError("Payment couldn't start. Check your connection and try again.");
     } finally {
       setCreatingIntent(false);
     }
   }
 
-  const availableCount = slots.filter((s) => s.available).length;
-  const hours = durationMinutes / 60;
+  function leaveEndedHold() {
+    setBooking(null);
+    setHeldDetails(null);
+    setClientSecret(null);
+    setIntentError(null);
+    backToTimes(null);
+  }
+
+  const summary = selectionText && (
+    <div className="flex flex-col gap-2 border-t border-border-subtle pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="tabular text-sm font-medium text-text-primary">{selectionText}</p>
+        <p className="text-sm text-text-secondary">You won&apos;t be charged yet.</p>
+        {stepIndex === 1 && (
+          <button type="button" onClick={() => goTo(0)} className="inline-flex min-h-11 items-center self-start text-sm font-medium text-text-accent hover:underline">
+            Change time
+          </button>
+        )}
+      </div>
+      <p className="tabular whitespace-nowrap text-sm sm:text-right text-text-secondary">
+        {durationMinutes / 60} h × {formatUsd(room.hourlyRateCents)} = <span className="text-lg font-semibold text-text-primary">{formatUsd(total)}</span>
+      </p>
+    </div>
+  );
+
+  const paymentProps = booking && clientSecret ? { booking, clientSecret, amountCents: booking.priceCents } : null;
 
   return (
-    <div className="flex flex-col gap-6 rounded-token-lg border border-border-subtle bg-surface p-5 shadow-[var(--shadow-medium)] sm:p-6">
+    <div ref={panelRef} className="flex flex-col gap-6 rounded-token-lg border border-border-subtle bg-surface p-5 shadow-[var(--shadow-medium)] sm:p-6">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-display text-2xl font-semibold text-text-primary">Book this room</h2>
+        <h2 ref={headingRef} tabIndex={-1} className="type-subhead text-text-primary focus:outline-none">
+          Book this room
+        </h2>
         <span className="tabular text-sm text-text-secondary">{formatUsd(room.hourlyRateCents)}/hr</span>
       </div>
       <StepIndicator steps={STEPS} currentIndex={stepIndex} />
 
-      <div className="flex items-center justify-between gap-4 rounded-token-sm bg-surface-raised px-4 py-3">
-        <p className="text-sm text-text-primary">
-          {selectedStart ? (
-            <>
-              {formatDateLong(date)}
-              <br />
-              <span className="tabular">
-                {formatTime12h(selectedStart)}, {hours} hour{hours > 1 ? "s" : ""}
-              </span>
-            </>
-          ) : (
-            <span className="text-text-secondary">Pick a date and start time</span>
-          )}
-        </p>
-        <div className="text-right">
-          <p className="tabular text-lg font-semibold text-text-primary">{formatUsd(priceCents)}</p>
-          {secondsLeft !== null && stepIndex === 2 && (
-            <p className={`tabular text-xs ${secondsLeft < 120 ? "text-error" : "text-text-secondary"}`}>
-              Held {Math.floor(secondsLeft / 60)}:{(secondsLeft % 60).toString().padStart(2, "0")}
-            </p>
-          )}
-        </div>
-      </div>
-
       {stepIndex === 0 && (
-        <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="booking-date" className="text-sm font-medium text-text-primary">
-                Date
-              </label>
-              <input
-                id="booking-date"
-                type="date"
-                min={today}
-                value={date}
-                onChange={(e) => e.target.value && setDate(e.target.value)}
-                className="min-h-11 rounded-token-sm border border-border-default bg-surface-raised px-3.5 py-2.5 text-text-primary"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-text-primary">Length</span>
-              <div className="flex gap-2">
-                {DURATIONS.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    aria-pressed={durationMinutes === m}
-                    onClick={() => setDurationMinutes(m)}
-                    className={`min-h-11 flex-1 rounded-token-sm border px-2 text-sm font-medium transition active:scale-[0.98] motion-reduce:active:scale-100 ${
-                      durationMinutes === m ? "border-accent bg-accent text-on-accent" : "border-border-default bg-surface-raised text-text-primary"
-                    }`}
-                  >
-                    {m / 60}h
-                  </button>
-                ))}
-              </div>
-            </div>
+        <>
+          <TimeStep
+            room={room}
+            today={today}
+            date={date}
+            onDate={(d) => {
+              setDate(d);
+              setSelectedStart(null);
+              setSlotNotice(null);
+            }}
+            durationMinutes={durationMinutes}
+            onDuration={(m) => {
+              setDurationMinutes(m);
+              setSelectedStart(null);
+              setSlotNotice(null);
+            }}
+            selectedStart={selectedStart}
+            onSelect={(s) => {
+              setSelectedStart(s);
+              setSlotNotice(null);
+            }}
+            refreshKey={refreshKey}
+            heldStart={heldStart}
+            notice={slotNotice}
+            onSlotsLoaded={onSlotsLoaded}
+          />
+          {summary}
+          <div className="hidden lg:block">
+            <Button disabled={!selectedStart} onClick={() => goTo(1)} size="lg" className="w-full">
+              Continue
+            </Button>
           </div>
-
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text-primary">Start time</span>
-            {!loadingSlots && !slotsError && slots.some((s) => s.unavailableReason === "too-soon") && (
-              <p className="text-sm text-text-secondary">
-                Same-day bookings need {BOOKING_CONFIG.minBookingNoticeHours} hours&apos; notice, so earlier times are closed.
-              </p>
-            )}
-            {loadingSlots && <p className="text-sm text-text-secondary">Checking availability…</p>}
-            {slotsError && <p className="text-sm text-error">{slotsError}</p>}
-            {!loadingSlots && !slotsError && availableCount === 0 && (
-              <p className="text-sm text-text-secondary">No open times on this day. Try another date.</p>
-            )}
-            {!loadingSlots && !slotsError && availableCount > 0 && (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {slots.map((slot) => (
-                  <TimeSlotChip
-                    key={slot.startTime}
-                    label={formatTime12h(slot.startTime)}
-                    state={!slot.available ? "unavailable" : selectedStart === slot.startTime ? "selected" : "available"}
-                    unavailableReason={slot.unavailableReason}
-                    onClick={() => slot.available && setSelectedStart(slot.startTime)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <Button disabled={!selectedStart} onClick={() => setStepIndex(1)} className="w-full">
-            Continue
-          </Button>
-        </div>
+        </>
       )}
 
       {stepIndex === 1 && (
-        <div className="flex flex-col gap-4">
+        <form id="booking-details" noValidate onSubmit={handleDetailsSubmit} className="flex flex-col gap-4">
+          {summary}
           {signedInAs ? (
             <p className="text-sm text-text-secondary">Signed in as {signedInAs}. This booking will show in your account.</p>
           ) : (
@@ -290,6 +322,7 @@ export function BookingFlow({ room }: { room: Room }) {
           )}
           <InputField
             label="Full name"
+            data-step-focus
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             error={formErrors.name}
@@ -309,41 +342,139 @@ export function BookingFlow({ room }: { room: Room }) {
             type="tel"
             value={form.phone}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            error={formErrors.phone}
             autoComplete="tel"
           />
           {holdError && (
-            <p role="alert" className="text-sm text-error">
-              {holdError}
-            </p>
+            <div role="alert" className="flex flex-col items-start gap-1 text-sm text-error">
+              <p>{holdError}</p>
+              {heldDetails && holdError.startsWith("This time is held") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm(heldDetails);
+                    setHoldError(null);
+                  }}
+                  className="inline-flex min-h-11 items-center font-medium text-text-accent hover:underline"
+                >
+                  Use earlier details
+                </button>
+              )}
+            </div>
           )}
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setStepIndex(0)} className="flex-1">
-              Back
-            </Button>
-            <Button disabled={creatingHold} onClick={handleDetailsContinue} className="flex-1">
-              {creatingHold ? "Holding your slot…" : "Continue to payment"}
+          <div className="hidden lg:block">
+            <Button type="submit" disabled={creatingHold} size="lg" className="w-full">
+              {creatingHold ? "Holding your time…" : "Review booking"}
             </Button>
           </div>
+        </form>
+      )}
+
+      {stepIndex === 2 && booking && (
+        <div className="flex flex-col gap-5">
+          <dl className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle text-sm">
+            <div className="flex items-start justify-between gap-4 py-3">
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-text-secondary">Booking</dt>
+                <dd className="font-medium text-text-primary">{room.name}</dd>
+                <dd className="text-text-primary">{formatDateLong(booking.date)}</dd>
+                <dd className="tabular text-text-primary">
+                  {timeRange(booking.startTime, booking.endTime)} {zoneAbbrev(SITE.timeZone, booking.date)} · {hoursLabel(booking.durationMinutes)}
+                </dd>
+              </div>
+              <button type="button" onClick={() => goTo(0)} aria-label="Edit time" className="inline-flex min-h-11 items-center px-1 font-medium text-text-accent hover:underline">
+                Edit
+              </button>
+            </div>
+            <div className="flex items-start justify-between gap-4 py-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <dt className="text-text-secondary">You</dt>
+                <dd className="text-text-primary">{heldDetails?.name}</dd>
+                <dd className="break-words text-text-primary">{heldDetails?.email}</dd>
+              </div>
+              <button type="button" onClick={() => goTo(1)} aria-label="Edit your details" className="inline-flex min-h-11 items-center px-1 font-medium text-text-accent hover:underline">
+                Edit
+              </button>
+            </div>
+            <div className="flex items-baseline justify-between gap-4 py-3">
+              <dt className="text-text-secondary">
+                {room.name} · {hoursLabel(booking.durationMinutes)} × {formatUsd(room.hourlyRateCents)}
+              </dt>
+              <dd className="tabular text-lg font-semibold text-text-primary">{formatUsd(booking.priceCents)}</dd>
+            </div>
+          </dl>
+
+          <p className="text-sm text-text-secondary">
+            Need to change or cancel? Contact us.{" "}
+            <Link href="/faq" className="font-medium text-text-accent hover:underline">
+              A formal cancellation policy is being finalized.
+            </Link>
+          </p>
+
+          <p className="sr-only" role="alert">
+            {holdEndingSoon ? "Your hold on this time ends in under 2 minutes." : ""}
+          </p>
+
+          {holdEnded ? (
+            <div className="flex flex-col items-start gap-3">
+              <p className="font-medium text-text-primary">Your hold has ended.</p>
+              <p className="text-sm text-text-secondary">Go back to check whether this time is still open.</p>
+              <Button onClick={leaveEndedHold}>Back to times</Button>
+            </div>
+          ) : (
+            <>
+              {booking.holdExpiresAt && (
+                <p className="text-sm text-text-primary">
+                  {holdEndingSoon && <span className="font-semibold">Ending soon: </span>}
+                  Held for you until <span className="tabular">{clockInZone(booking.holdExpiresAt)}</span>.
+                </p>
+              )}
+              {creatingIntent && <p className="text-sm text-text-secondary">Preparing payment…</p>}
+              {intentError && !creatingIntent && (
+                <div className="flex flex-col gap-3">
+                  <p role="alert" className="text-sm text-error">
+                    {intentError}
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={() => createPaymentIntent(booking.id)}>Try again</Button>
+                    <Button variant="secondary" onClick={() => goTo(0)}>
+                      Change time
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {/* Contract D: PaymentStep takes amountCents for its "Pay $X" label. */}
+              {paymentProps && <PaymentStep {...paymentProps} />}
+            </>
+          )}
         </div>
       )}
 
-      {stepIndex === 0 && holdError && (
-        <p role="alert" className="text-sm text-error">
-          {holdError}
-        </p>
-      )}
-
-      {stepIndex === 2 && (
-        <div className="flex flex-col gap-4">
-          {creatingIntent && <p className="text-sm text-text-secondary">Preparing payment…</p>}
-          {paymentIntentError && (
-            <p role="alert" className="text-sm text-error">
-              {paymentIntentError}
+      {stepIndex < 2 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex h-[calc(4.5rem+env(safe-area-inset-bottom))] items-start gap-3 border-t border-border-subtle bg-surface px-4 pb-[env(safe-area-inset-bottom)] pt-3 lg:hidden">
+          {/* Reserve the bar's height at the end of the page so it never covers the footer. */}
+          <style>{"@media (width < 64rem) { body { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); } }"}</style>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <p className="tabular truncate text-sm font-medium text-text-primary">
+              {selectedStart && endTime ? timeRange(selectedStart, endTime) : "Pick a time"}
             </p>
+            <p className="tabular truncate text-sm text-text-secondary">
+              {selectedStart ? formatDateShort(date) : `${durationMinutes / 60} h`} · {formatUsd(total)}
+            </p>
+          </div>
+          {/* Distinct keys: reusing one <button> would turn the Continue click into a form submit mid-event. */}
+          {stepIndex === 0 ? (
+            <Button key="continue" disabled={!selectedStart} onClick={() => goTo(1)}>
+              Continue
+            </Button>
+          ) : (
+            <Button key="review" type="submit" form="booking-details" disabled={creatingHold}>
+              {creatingHold ? "Holding…" : "Review booking"}
+            </Button>
           )}
-          {booking && clientSecret && <PaymentStep booking={booking} clientSecret={clientSecret} />}
         </div>
       )}
     </div>
   );
 }
+

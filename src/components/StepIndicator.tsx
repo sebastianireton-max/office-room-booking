@@ -1,9 +1,7 @@
 /**
- * Mirrors the Figma Step Indicator Dot component (node 7:18), composed into
- * a full step bar. Decided NOT interactive (design package Section 7 open
- * question, resolved here): steps are a pure status display, so the 32×32
- * dot size does not need touch-target padding (design package Section 8.5).
- * An ARIA live region announces step changes for screen readers — Section 8.6 #7.
+ * Checkout progress, display only (steps are not links). Labels stay in the
+ * accessibility tree at every width; below sm they are visually hidden so the
+ * bar fits a phone. aria-current marks the step, the live region announces moves.
  */
 
 export interface Step {
@@ -13,33 +11,29 @@ export interface Step {
 export function StepIndicator({ steps, currentIndex }: { steps: Step[]; currentIndex: number }) {
   return (
     <nav aria-label="Checkout progress">
-      <ol className="flex items-center gap-2 sm:gap-4">
+      <ol className="flex items-center gap-2 sm:gap-3">
         {steps.map((step, i) => {
           const state = i < currentIndex ? "completed" : i === currentIndex ? "current" : "upcoming";
           return (
-            <li key={step.label} className="flex items-center gap-2 sm:gap-4">
-              <div className="flex flex-col items-center gap-1.5">
-                <div
-                  className={[
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium",
-                    state === "completed" && "bg-success text-on-success",
-                    state === "current" && "bg-accent text-on-accent",
-                    state === "upcoming" && "bg-surface border border-border-default text-text-secondary",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {state === "completed" ? "✓" : i + 1}
-                </div>
-                <span
-                  className={`hidden text-xs sm:block ${
-                    state === "upcoming" ? "text-text-secondary" : "text-text-primary"
-                  }`}
-                >
-                  {step.label}
-                </span>
-              </div>
-              {i < steps.length - 1 && <div className="h-px w-6 shrink-0 bg-border-default sm:w-10" />}
+            <li key={step.label} aria-current={state === "current" ? "step" : undefined} className="flex items-center gap-2 sm:gap-3">
+              <span
+                aria-hidden="true"
+                className={[
+                  "tabular flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                  state === "completed" && "bg-success text-on-success",
+                  state === "current" && "bg-accent text-on-accent",
+                  state === "upcoming" && "border border-border-default bg-surface text-text-secondary",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {state === "completed" ? "✓" : i + 1}
+              </span>
+              <span className={`sr-only text-sm sm:not-sr-only ${state === "upcoming" ? "text-text-secondary" : "text-text-primary"}`}>
+                {step.label}
+                {state === "completed" && <span className="sr-only"> (done)</span>}
+              </span>
+              {i < steps.length - 1 && <span aria-hidden="true" className="h-px w-5 shrink-0 bg-border-default sm:w-6" />}
             </li>
           );
         })}
