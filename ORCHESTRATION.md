@@ -2,17 +2,19 @@
 
 How any session coordinating this repo (main conversation, or a fresh session
 picking up a trigger) runs its subagents. The specialists live in
-`.claude/agents/`: **`design-auditor`** (visual/UX/WCAG) and
-**`security-auditor`** (secrets, Stripe integrity, injection, rate limiting).
+`.claude/agents/`, all report-only: **`security-auditor`**, **`design-auditor`**,
+**`accessibility-auditor`**, **`booking-ux-reviewer`**, **`copy-reviewer`**,
+**`seo-auditor`**, **`systems-reviewer`** and **`code-quality-reviewer`**.
+`.claude/workflows/site-review.js` fans them out in parallel and ends in a lead
+step that verifies each claim in code and runs `npm run ci` itself.
 
 ## The orchestrating session is the oversight layer
 
 Subagent reports are claims, not facts. Before treating any subagent's work as
 finished, verified, or ready to push:
 
-- **Independently re-run the build** — `npm run build && npx tsc --noEmit &&
-  npm run lint` yourself, from a clean `.next`, rather than trusting a
-  "verified" line in a report. **Build first, then typecheck.** Next 16
+- **Independently re-run the build** — `rm -rf .next && npm run verify`
+  yourself, rather than trusting a "verified" line in a report. **Build first, then typecheck.** Next 16
   generates `PageProps` / `LayoutProps` / `RouteContext` into `.next/types`
   during the build, so after `rm -rf .next` a leading `tsc --noEmit` always
   fails with `Cannot find name 'PageProps'`. That is a missing codegen step,
@@ -24,25 +26,32 @@ finished, verified, or ready to push:
   history includes doing exactly that and confirming 2.19:1 / 8.48:1 by hand).
 - **Run the app when the claim is about runtime behavior.** Reading code
   missed the Stripe.js eager-load bug; a real browser caught it. Dev server +
-  the Playwright Chromium at `/opt/pw-browsers/chromium` is the loop:
+  Playwright's bundled Chromium (`npx playwright install chromium`) is the loop:
   screenshot at 390px first, then 1440px, and check `document.documentElement.
   scrollWidth` — don't eyeball "no horizontal scroll."
 - If a subagent's finding doesn't survive the second look, say so plainly and
   correct it — never pass along a specialist's mistake because a specialist
   made it.
 
-Push policy: this repo currently pushes **direct to `main`** (no PR gate).
-That makes independent verification BEFORE push non-negotiable — there is no
-review stage after you.
+Push policy: this repo pushes **direct to `main`** (no PR gate), so independent
+verification BEFORE push is non-negotiable. `.github/workflows/ci.yml` runs
+`npm run ci` on every push to `main` and `wip/**` and weekly, with no secrets;
+it is a backstop after the push, not a review stage.
 
 ## Dispatch
 
-- Visual/UX/accessibility work or review → **design-auditor**.
-- Anything touching secrets, payment, webhooks, validation, headers, deps →
-  **security-auditor**.
-- Run audit agents in **isolated worktrees** (`isolation: worktree`) and in
-  the background; they may push to `main` themselves — fetch and re-verify
-  their commits when the notification lands, exactly as above.
+- Visual design → **design-auditor**; WCAG → **accessibility-auditor**; the
+  booking panel and payment step → **booking-ux-reviewer**; words and honesty
+  → **copy-reviewer**; search → **seo-auditor**; health, backups, CI, deploy
+  readiness → **systems-reviewer**; dead code and duplication →
+  **code-quality-reviewer**.
+- Anything touching secrets, payment, webhooks, auth, validation, headers,
+  deps → **security-auditor**.
+- A whole-site pass → the `site-review` workflow.
+- The lens agents are report-only: they never edit, commit, push, or start and
+  stop servers. They run against a server the lead started, with a throwaway
+  `DATABASE_PATH`, and write only under `.design-audit/team/<label>/`. Fixes
+  are separate build work, verified as above.
 - Concurrent agents: they rebase over each other's pushes; after both land,
   re-run the full verification once on the merged result.
 - Feature building can happen inline in the orchestrating session — the
@@ -99,11 +108,14 @@ review stage after you.
 
 ## Verification loop (the standard pass, in order)
 
-1. `rm -rf .next && npm run build && npx tsc --noEmit && npm run lint`
-   (build first — it generates the route types `tsc` needs; see above)
+1. `rm -rf .next && npm run verify` (build first, then `tsc`, then eslint —
+   the build generates the route types `tsc` needs; see above). Then
+   `npm run ci`: smoke suite + design:verify against `next start` on port 3100
+   with a fresh `data/ci.db`, server stopped afterwards.
 2. `npm audit` if `package.json` changed; grep `.next/static` for
    `sk_live|sk_test` if anything Stripe-adjacent changed.
-3. Dev server + Chromium screenshots, 390px then desktop, for anything visual.
+3. Look at the `.design-audit/` screenshots `npm run ci` wrote, 390px then
+   desktop, for anything visual. The script measures; you judge.
 4. Read the full diff of whatever is about to be pushed.
 5. Push to `main`, update the task list, report with evidence — what was
    verified and how, not just "done."

@@ -91,11 +91,12 @@ serif fits this brand**. If justified, rotate from: PP Editorial New, GT Sectra
 Display, Reckless Neue, Tiempos Headline, Recoleta, Canela, Domaine Display,
 Saol Display, EB Garamond, Cormorant Garamond.
 
-**Grandfather clause:** this repo already ships **Fraunces** as its display
-face, chosen deliberately during the light-editorial restyle and approved by
-the owner. It stays. Do not "fix" it. The ban governs *new* choices, and an
-owner's explicit decision outranks a default. Say so plainly if asked rather
-than silently swapping it.
+**Shipped faces (owner-approved):** this repo's display face is **Bricolage
+Grotesque** (a sans, headings only), with **Geist** for all words and **Geist
+Mono** (`.tabular`) only for figures that are compared or copied: times, prices,
+references, the admin hour grid. Fraunces was the display face until the
+2026-08-30 overhaul and is gone; do not "restore" it. The serif ban above
+governs *new* choices, and an owner's explicit decision outranks a default.
 
 ### 2.2 Inter
 
@@ -106,8 +107,8 @@ than silently swapping it.
 **Ruling: discouraged as a default, permitted on a stated override.** Valid
 overrides: the user asks for neutral / standard / Linear-style; the brief is
 public-sector or accessibility-first; the chosen pack is Industrial Brutalist,
-where heavy Inter is the correct macro face. This repo uses Inter for body text
-against a Fraunces display, which is an intentional pairing, not a violation.
+where heavy Inter is the correct macro face. This repo does not ship Inter
+(body is Geist since 2026-08-30).
 
 ### 2.3 Eyebrows (small uppercase wide-tracked labels above headings)
 
@@ -170,9 +171,12 @@ collapses to static under `prefers-reduced-motion: reduce`.
 **Ruling: compatible, both apply.** But this repo overrides the *source*:
 room photography stays an obvious placeholder until the owner supplies real
 photos (`PROJECT_CONTEXT.md` §7). Do not generate fake room photos and do not
-substitute stock interiors. The existing `public/rooms/*.svg` placeholders with
-"ROOM PHOTO COMING SOON" are the correct pattern - the layout already accepts
-real photos with zero code changes.
+substitute stock interiors. The shipped pattern is the room illustrations at
+`public/rooms/art/<id>.webp`, captioned "Illustration of the setup" as a text
+line under the image (never a pill on the art). Real photos drop in at the same
+paths; then remove the caption. No image goes into the homepage hero until real
+photos exist, and room art bands stay height-capped so the booking widget top
+sits within the first 900px at 1440.
 
 ### 2.8 Em-dash
 
@@ -182,6 +186,8 @@ Only `design-taste-frontend` bans it, and it bans it absolutely.
 anywhere a user can see: headlines, eyebrows, pills, body, quotes, attribution,
 captions, buttons, alt text. Use a period, a comma, parentheses, a colon, or a
 plain hyphen. The verifier greps for it, so this one is not a matter of taste.
+One exception: an en-dash as a range glyph inside a time range
+("7:00 – 9:00 PM") in the booking panel. Nowhere else.
 
 ---
 
@@ -193,8 +199,8 @@ commit to it.
 
 | Pack | From | Palette | Type | Radius | Motion | Use when |
 |---|---|---|---|---|---|---|
-| **Editorial Light** | `minimalist-ui` | Warm bone / off-white, near-black text, desaturated pastel spots | Sans body + one justified display face | 8-12px | Invisible, 600ms fades | Calm, document-like, trust-forward. **This repo's current pack.** |
-| **Awwwards Premium** | `high-end-visual-design` | OLED black or warm cream, one accent | Geist / Clash Display / PP Editorial | `2rem` squircles, pill CTAs | Spring physics, staggered reveals, magnetic hover | Agency, portfolio, premium consumer, high variance |
+| **Editorial Light** | `minimalist-ui` | Warm bone / off-white, near-black text, desaturated pastel spots | Sans body + one justified display face | 8-12px | Invisible, 600ms fades | Calm, document-like, trust-forward. |
+| **Awwwards Premium** | `high-end-visual-design` | OLED black or warm cream, one accent | Geist / Clash Display / PP Editorial | `2rem` squircles, pill CTAs | Spring physics, staggered reveals, magnetic hover | Agency, portfolio, premium consumer, high variance. **This repo's current pack, on a warm-paper light substrate, at MOTION_INTENSITY 3.** |
 | **Industrial Brutalist** | `industrial-brutalist-ui` | Newsprint `#F4F4F0` + carbon ink + hazard red, OR CRT `#0A0A0A` + phosphor + red | Heavy grotesk macro + mono micro, all caps | **0** | Minimal, mechanical | Declassified-blueprint, telemetry, data-dense editorial |
 | **Cinematic Motion** | `gpt-taste` | Dark with ambient depth | Satoshi / Cabinet Grotesk / Outfit | Varies | GSAP pinning, scrubbing, stacking | Scrolltelling where motion carries the narrative |
 
@@ -202,6 +208,12 @@ Never mix substrates within a pack: Industrial Brutalist is light **or** dark,
 never both in one interface. Same for every pack - one theme per page, no
 section flips (a single dark band in an otherwise light page reads as a
 copy-paste accident, not a design choice).
+
+**Allowed chrome exception (this repo):** the dark statement footer
+(`--color-bg-inverse`) on every public page. It is site chrome, not a mid-page
+section flip, and was a recorded hallmark pass-2 decision. Its statement line is
+capped at `clamp(2rem, 3.5vw, 2.75rem)` so every page H1 outranks it. No other
+dark band.
 
 **Brand asset generation** (`brandkit`) stays a separate skill. It governs logo
 boards, mockups, and brand imagery, not page layout. Invoke it directly when
@@ -402,7 +414,10 @@ pipeline. It writes full-page screenshots per route per width, plus
 
 ### 9.B The full pass, in order
 
-1. `rm -rf .next && npx tsc --noEmit && npm run build && npm run lint`
+1. `rm -rf .next && npm run verify` (build, then typecheck, then lint: the
+   build generates the route types `tsc` needs). `npm run ci` adds the smoke
+   suite and this verifier against `next start` on port 3100 with a fresh
+   `data/ci.db`.
 2. `npm audit` if `package.json` changed. Grep `.next/static` for
    `sk_live|sk_test` if anything Stripe-adjacent changed.
 3. `verify.mjs` at 390px **first**, then desktop.

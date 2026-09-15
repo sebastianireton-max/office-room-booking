@@ -5,6 +5,8 @@
 //   $env:STRIPE_SECRET_KEY="smoke-not-a-real-key"; $env:STRIPE_WEBHOOK_SECRET="smoke-webhook-secret"
 //   npm run dev -- --port 3002      (same env), then:  npm run test:smoke
 //
+// `npm run ci` does all of that on port 3100 with a fresh data/ci.db (tests/ci.mjs).
+//
 // The Stripe values are deliberately not key-shaped: webhook signatures are
 // checked locally, so no real key or network call is involved.
 // Exits non-zero on the first failed check.
@@ -13,7 +15,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 import Stripe from "stripe";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3002";
+const BASE = process.env.BASE ?? process.env.BASE_URL ?? "http://localhost:3002";
 const DB = process.env.DATABASE_PATH;
 const SECRET = process.env.AUTH_SECRET;
 if (!DB || !SECRET || DB.includes("bookings.db")) throw new Error("Set DATABASE_PATH (not bookings.db) and AUTH_SECRET to match the server.");
@@ -36,6 +38,7 @@ const sign = (payload) => {
 
 // --- Public pages and search plumbing -------------------------------------
 const home = await (await get("/")).text();
+check("health endpoint answers", (await get("/api/health")).status === 200);
 check("home renders the room board", home.includes("Open start times") && home.includes("The Boardroom"));
 check("skip link is present", home.includes('href="#main-content"') && home.includes('id="main-content"'));
 check("accessibility statement served", (await get("/accessibility")).status === 200);
@@ -128,6 +131,19 @@ await webhook("charge.refunded", { id: "ch_1", object: "charge", refunded: true,
 const refunded = statusOf(refundable.booking.id);
 check("full refund cancels the booking and records the refund", refunded.status === "cancelled" && refunded.stripe_refund_id === "re_full");
 
+const failing = await (await hold({ date: day(5), startTime: "13:00" })).json();
+attach(failing.booking.id, "pi_smoke_failed");
+await webhook("payment_intent.payment_failed", { id: "pi_smoke_failed", object: "payment_intent" });
+check("signed payment_intent.payment_failed releases the hold", statusOf(failing.booking.id).status === "expired");
+const rehold = await hold({ date: day(5), startTime: "13:00" });
+const pending = await rehold.json();
+check("released slot can be held again", rehold.status === 200);
+
+// --- Calendar file ------------------------------------------------------------
+const ics = await get(`/api/bookings/${firstBody.booking.id}/calendar`);
+check("confirmed booking downloads as text/calendar", ics.status === 200 && ics.headers.get("content-type")?.includes("text/calendar"));
+check("pending booking has no calendar file", (await get(`/api/bookings/${pending.booking.id}/calendar`)).status === 404);
+
 // --- Double-booking race: 12 customers, one slot, same instant -------------------
 const race = await Promise.all(Array.from({ length: 12 }, () => hold({ date: day(4), startTime: "12:00", roomId: "podcast-b" })));
 const codes = race.map((r) => r.status);
@@ -169,7 +185,12 @@ const page = await ctx.newPage();
 
 await page.goto(`${BASE}/admin`);
 check("dashboard loads", await page.getByRole("heading", { name: "Today" }).isVisible());
-check("dashboard surfaces the paid-but-unbooked customer", await page.getByText("Charged but not booked").isVisible());
+check("dashboard surfaces the paid-but-unbooked customer", await page.getByRole("heading", { name: "Charged, not booked" }).isVisible());
+
+await page.goto(`${BASE}/admin/bookings/${formula.booking.id}`);
+await page.getByRole("button", { name: "Mark handled" }).click();
+await page.waitForURL(/notice=/);
+check("admin Mark handled clears the payment issue", !statusOf(formula.booking.id).payment_issue);
 
 await page.goto(`${BASE}/admin/blocks`);
 await page.selectOption('select[name="roomId"]', "content-a");
@@ -193,8 +214,36 @@ check("admin cancel succeeds", (await page.textContent("[role=status]"))?.includ
 const after = (await (await get(`/api/availability?roomId=content-a&date=${day(3)}&durationMinutes=60`)).json()).slots;
 check("cancelled slot is closed only by the block, not the booking", after.find((s) => s.startTime === "10:00")?.unavailableReason === "closed");
 
+await page.goto(`${BASE}/admin/blocks`);
+await page.getByRole("button", { name: "Remove" }).first().click();
+await page.waitForURL(/notice=/);
+const reopened = (await (await get(`/api/availability?roomId=content-a&date=${day(3)}&durationMinutes=60`)).json()).slots;
+check("removing the block reopens the slot", reopened.find((s) => s.startTime === "10:00")?.available === true);
+
+await page.goto(`${BASE}/confirmation/${refundable.booking.id}`);
+await page.getByText(/was cancelled/).first().waitFor();
+check("cancelled booking's confirmation says it was cancelled", (await page.textContent("main"))?.includes("was cancelled"));
+
+// Every in-page link has to land on something (a dead /#find shipped once).
+const probe = await ctx.newPage();
+const probed = new Set();
+for (const path of ["/", "/about", "/account", "/pricing", "/definitely-not-a-page"]) {
+  await page.goto(BASE + path, { waitUntil: "networkidle" });
+  const hrefs = [...new Set(await page.$$eval("a[href*='#']", (as) => as.map((a) => a.href)))];
+  for (const href of hrefs) {
+    const url = new URL(href);
+    if (url.origin !== new URL(BASE).origin || url.hash.length < 2 || probed.has(url.pathname + url.hash)) continue;
+    probed.add(url.pathname + url.hash);
+    await probe.goto(href, { waitUntil: "networkidle" });
+    const found = await probe.evaluate((id) => Boolean(document.getElementById(id)), decodeURIComponent(url.hash.slice(1)));
+    check(`fragment ${url.pathname}${url.hash} on ${path} resolves`, found);
+  }
+}
+await probe.close();
+
 await page.goto(`${BASE}/admin/activity`);
-check("audit log records the actions", (await page.textContent("table"))?.includes("cancel"));
+const audit = (await page.textContent("table")) ?? "";
+check("audit log records the actions", ["Cancelled", "Marked handled", "Blocked time", "Removed block"].every((a) => audit.includes(a)));
 
 // --- Keyboard only: the claims on /accessibility have to be true ----------------
 const kb = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
@@ -204,17 +253,51 @@ check("first Tab lands on the skip link", (await kb.evaluate(() => document.acti
 await kb.keyboard.press("Enter");
 check("skip link moves focus to the content", (await kb.evaluate(() => document.activeElement?.id)) === "main-content");
 
-await kb.goto(`${BASE}/rooms/content-b?date=${day(6)}&duration=60`, { waitUntil: "networkidle" });
-await kb.locator("#booking-date").focus();
+// --- Booking panel ------------------------------------------------------------
+// podcast-b has one held hour (the race winner) at 12:00 on day(4).
+await kb.goto(`${BASE}/rooms/podcast-b?date=${day(4)}&duration=60#book`, { waitUntil: "networkidle" });
+const dateGroup = kb.getByRole("radiogroup", { name: "Date" });
+await kb.waitForFunction(() => [...document.querySelectorAll("input[type=radio][aria-label]")].some((r) => /open time/.test(r.getAttribute("aria-label"))));
+const dayLabels = await dateGroup.getByRole("radio").evaluateAll((rs) => rs.map((r) => r.getAttribute("aria-label")));
+check("week strip shows 7 days with open counts", dayLabels.length === 7 && dayLabels.every((l) => /open time/.test(l)), dayLabels.join(" | "));
+const timeGroup = kb.getByRole("radiogroup", { name: /^Start time on/ });
+await timeGroup.waitFor();
+const times = await timeGroup.locator("label").allInnerTexts();
+check("only available start times render", !times.includes("12 PM") && times.includes("11 AM"), times.join(","));
+check("unavailable times are summarised in one line", (await kb.textContent("#book"))?.includes("1 time already booked."));
+
 let onSlot = false;
-for (let i = 0; i < 30 && !onSlot; i++) {
+for (let i = 0; i < 40 && !onSlot; i++) {
   await kb.keyboard.press("Tab");
-  onSlot = await kb.evaluate(() => /^\d{1,2}:00 [AP]M$/.test(document.activeElement?.textContent ?? "") && !document.activeElement.disabled);
+  onSlot = await kb.evaluate(() => document.activeElement?.type === "radio" && /^\d{1,2} [AP]M$/.test(document.activeElement.closest("label")?.textContent ?? ""));
 }
 check("a time slot is reachable by Tab", onSlot);
-check("focused control shows a visible ring", (await kb.evaluate(() => getComputedStyle(document.activeElement).outlineStyle)) !== "none");
-await kb.keyboard.press("Enter");
-check("Enter selects the slot", (await kb.evaluate(() => document.activeElement?.getAttribute("aria-pressed"))) === "true");
+check("focused time shows a visible ring", (await kb.evaluate(() => getComputedStyle(document.activeElement.closest("label")).outlineStyle)) !== "none");
+await kb.keyboard.press("Space");
+const firstTime = await kb.evaluate(() => document.activeElement.checked && document.activeElement.closest("label").textContent);
+check("Space selects the focused time", Boolean(firstTime));
+await kb.keyboard.press("ArrowRight");
+const nextTime = await kb.evaluate(() => document.activeElement.checked && document.activeElement.closest("label").textContent);
+check("arrow keys move within the time radiogroup", Boolean(nextTime) && nextTime !== firstTime, `${firstTime} -> ${nextTime}`);
+
+// A time picked on the homepage board opens straight on Details.
+await kb.goto(`${BASE}/rooms/content-b?date=${day(6)}&start=10:00&duration=60#book`, { waitUntil: "networkidle" });
+await kb.getByLabel("Full name").waitFor();
+check("deep link opens the Details step", (await kb.textContent('[aria-current="step"]'))?.includes("Details"));
+await kb.getByLabel("Full name").fill("Smoke Panel");
+await kb.getByLabel("Email").fill("panel@smoke.test");
+// Stripe is never called from this suite: stand in for the intent route; the hold is real.
+await kb.route("**/api/checkout/create-payment-intent", (r) =>
+  r.fulfill({ json: { clientSecret: "smoke_client_secret", holdExpiresAt: new Date(Date.now() + 30 * 60_000).toISOString() } })
+);
+await kb.getByRole("button", { name: "Review booking" }).click();
+await kb.getByText(/Held for you until/).waitFor();
+const review = (await kb.textContent("#book")) ?? "";
+check("Review & pay shows the price breakdown", /1 hour × \$\d+/.test(review) && (await kb.textContent('[aria-current="step"]'))?.includes("Review"), review.slice(0, 300));
+check("hold notice gives a clock time", /Held for you until \d{1,2}:\d{2}\s[AP]M/.test(review));
+// This build has no publishable key, so PaymentStep shows its neutral message instead of "Pay $".
+const payButton = await kb.getByRole("button", { name: /^Pay \$\d/ }).count();
+check("payment area shows Pay $ or the neutral not-switched-on message", payButton > 0 || /Online payment isn.t switched on yet/.test(review));
 
 // --- No horizontal scroll at phone width --------------------------------------
 const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });

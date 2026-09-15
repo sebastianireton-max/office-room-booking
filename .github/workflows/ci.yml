@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "wip/**"]
+  schedule:
+    - cron: "17 6 * * 1" # weekly, so a new advisory or a date-dependent break shows up without a push
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm audit --omit=dev --audit-level=high
+      # Build, typecheck, lint, then smoke + design:verify against next start on 3100.
+      # Uses the non-secret smoke env from tests/ci.mjs; no repository secrets.
+      - run: npm run ci
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-audit
+          path: .design-audit/
+          if-no-files-found: ignore

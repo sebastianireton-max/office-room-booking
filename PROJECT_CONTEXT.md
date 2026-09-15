@@ -5,7 +5,8 @@ session, another tool, or a human gets full context here without re-deriving
 any of it. `CLAUDE.md` imports this file, so Claude Code loads it automatically.
 
 Owner: thedreamgivers@icloud.com. Last rewritten: August 30, 2026; revamp
-section §0 added September 13, 2026 and takes precedence where they differ.
+section §0 added September 13, 2026 and extended September 15, 2026 (build
+team); §0 takes precedence where they differ.
 
 Repo: https://github.com/sebastianireton-max/office-room-booking (branch `main`,
 pushed directly — no PR gate is established for this repo yet).
@@ -44,6 +45,74 @@ Later directives that shaped the current state:
 ---
 
 ## 0. Revamp of 2026-09-13 — read this before §2 (it supersedes parts of it)
+
+### Build team 2026-09-15 (newest; supersedes the rest of §0 where they differ)
+
+Owner request: "a pro level formatted booking system", professional not AI
+slop, clean code, a system that runs flawlessly. Eight review lenses, a lead
+plan, then eight build packages (WP1 to WP8) integrated on
+`wip/windows-uncommitted-2026-09-11`. **Not yet on `main`** (see §2).
+
+**Booking panel (room pages).** Three steps, "Time", "Details", "Review & pay"
+(`aria-current="step"`). Time: Length 1h/2h/3h with totals; a 7-day week strip
+from today in the studio zone with open counts (new `GET /api/availability/week`,
+zod, rate-limited, 404 for unknown rooms), paging within `maxAdvanceDays`, plus
+"Pick a date"; a zone line derived from `SITE.timeZone` via Intl; **only open
+start times**, grouped Morning / Afternoon / Evening, with one truthful muted
+line for the rest ("Earlier times today need 2 hours' notice.", "2 times already
+booked."); empty days offer "Next available". Details: server field errors
+inline, focus to the first invalid field. Review & pay: booking/you/price with
+Edit, honest policy line, "Held for you until 3:42 PM EDT" from the extended
+hold `create-payment-intent` now returns, "Ending soon:" plus one sr-only alert
+under 2 minutes, "Your hold has ended." with a way back, Try again / Change time
+when payment cannot start, and "Pay $N". Homepage deep links with an open start
+land on Details. Mobile: a fixed bottom bar carries the one primary action.
+
+**Rulings from the lead brief** (they override earlier notes, including the
+§8.1 per-chip labels): unavailable chips are gone from the room panel, replaced
+by the summary line; the hold notice is a calm absolute time, never a ticking
+countdown or red; **no Express Checkout Element** (the Payment Element already
+shows Apple Pay / Google Pay / Link once enabled in the Stripe dashboard, an
+owner step); no hold-extend button (essential timing); en-dash allowed only as a
+time-range glyph in the panel. **Kashu verdict: stay on Stripe.** Its AUP forbids
+charging for a business other than the one applied for, fees run about 2x and it
+holds a reserve; no payment-provider seam was added.
+
+**Design rulings recorded**: Geist Mono (`.tabular`) only on times, prices,
+references and the admin grid; one filled accent per viewport and teal never a
+status; one H1 axis and the `type-page` / `type-section` / `type-subhead` scale;
+room art band capped at lg (40vh) with the caption under the image; no hero image
+until real photos exist; the dark footer stays, its statement capped at
+`clamp(2rem, 3.5vw, 2.75rem)` (recorded as an allowed exception in
+design-verified); boxed "How booking works" became a plain list.
+
+**Also shipped**: fonts self-hosted through `next/font` (the `@fontsource-variable/*`
+packages and unused `date-fns` removed); honest confirmation states (cancelled,
+expired, load error); webhook logs no event payload, email sent in `after()`;
+admin status colours, one "Charged, not booked" label, shared filters for list and
+CSV; `/api/health` (`SELECT 1`), `onRequestError` one-line sanitized logging,
+error pages; a production build refuses to run without `NEXT_PUBLIC_SITE_URL`.
+
+**The repeatable system (WP8)**:
+- `npm run verify` = build, then `tsc --noEmit`, then eslint (via
+  `tests/ci.mjs verify`, which supplies a localhost `NEXT_PUBLIC_SITE_URL` only
+  when none is set, so the production-URL guard does not block verification).
+- `npm run ci` = verify, then `tests/ci.mjs`: `next start` on port 3100 with a
+  fresh `data/ci.db` and the non-secret smoke env, `tests/smoke.mjs` (90 checks
+  now: adds payment_failed release, .ics route, admin Mark handled and Remove
+  block, cancelled confirmation copy, every in-page fragment on five pages,
+  `/api/health`, and the booking panel: week strip counts, only open times,
+  keyboard Tab / Space / arrows in the time radiogroup, deep link to Details,
+  Review & pay price and hold notice), then design:verify; the server is always
+  stopped.
+- `.github/workflows/ci.yml`: push to `main` and `wip/**` plus weekly; npm ci,
+  Playwright Chromium, `npm audit --omit=dev --audit-level=high`, `npm run ci`,
+  `.design-audit/` uploaded on failure. No repository secrets.
+- `scripts/backup.mjs`: see **Backups** in §5.
+- Saved review team in `.claude/agents/` (security, design, accessibility,
+  booking-ux, copy, seo, systems, code-quality), all report-only with shared run
+  rules, and `.claude/workflows/site-review.js`, which fans them out and ends in
+  a lead that verifies in code and runs `npm run ci`.
 
 Driven by three independent audits (design/slop, security, Google-search
 readiness) plus GBrain's anti-slop reference, then built and verified in one pass.
@@ -159,7 +228,13 @@ caption keeps them honest meanwhile.
 
 ---
 
-## 2. Current state (all verified, all on `main`)
+## 2. Current state (verified on the working branch, NOT all on `main`)
+
+**`origin/main` is behind.** As of 2026-09-15 it still pins `next` 16.3.0, the
+version with the critical unauthenticated RCE advisory (§0), and has none of the
+2026-09-13 revamp or the 2026-09-15 build. The work lives on
+`wip/windows-uncommitted-2026-09-11` until the owner approves fast-forwarding
+`main` after CI passes. Parts of the list below also predate §0; §0 wins.
 
 A complete, working studio-rental site — not just a booking funnel:
 
@@ -310,9 +385,11 @@ findings were open before this pass; three came from `prisma`, which sat in
 `prisma` and `@prisma/client` moved to `devDependencies`, which removes them
 from the production tree entirely. The fourth, `nanoid < 3.3.18` via `ics` and
 `postcss`, is pinned up by an `overrides` entry in `package.json`.
-Three high findings remain in the **dev-only** tree (`deepmerge-ts` reached
-through prisma's config loader). Deliberately accepted: not in the production
-tree, not in any request path, and only "fixable" by downgrading prisma.
+Four high findings remain in the **dev-only** tree (2026-09-15 recount):
+`prisma`, `@prisma/config` and `deepmerge-ts` through prisma's config loader, and
+`mysql2`, which prisma 7 now pulls in. Deliberately accepted: not in the
+production tree, not in any request path, and only "fixable" by downgrading
+prisma. CI gates on `npm audit --omit=dev --audit-level=high`, which is 0.
 NOTE: do not run bare `npm install -D prisma` — it resolves to `8.0.0-rc.12`,
 a release candidate that drags in an `alchemy`/`composer` tree with hono and
 lodash advisories. Pin the 7.x line.
@@ -325,6 +402,18 @@ with real keys in a browser.
 
 The full line-by-line checklist lives in this repo's history (original §7) and
 in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
+
+**Backups** (launch default: RPO 24h, RTO 1h). Run nightly on the host:
+`DATABASE_PATH=<live db> BACKUP_DIR=<off-repo folder> node scripts/backup.mjs`.
+It writes `bookings-YYYY-MM-DD.db` with `VACUUM INTO` (safe while the app runs)
+and keeps the newest 14. The copies hold PII: keep them off the web root and out
+of git; off-box storage is an owner decision (§8). **Restore drill**, at least
+once before launch and after any schema change: copy the newest backup to a
+scratch path, `next start` against it (`DATABASE_PATH=<copy>`, a spare port),
+check `/api/health` is 200, then run the smoke suite's read checks against that
+server (home, a room page, `/api/availability`, admin sign-in with a test
+session) and compare `SELECT count(*) FROM bookings` with the source. Never run
+the full smoke suite against a restored real database; it writes bookings.
 
 ## 6. Design/Figma state
 
@@ -476,14 +565,22 @@ in `.claude/agents/security-auditor.md`, which re-verifies it each pass.
    instead of stamping a reason on ten chips. `available` itself is computed
    by the same unchanged `isRangeFree` call, so no booking logic moved.
 2. **Stripe test keys + real payment test** (§4) — the one untested leg.
-3. **Deploy** (Vercel is the natural fit) — webhooks need a public URL.
-   Remember: SQLite won't survive serverless; do #4 first or deploy to a
-   single persistent instance initially.
+3. **Deploy** — webhooks need a public URL. While on SQLite, deploy to one
+   always-on Node instance with a persistent disk (Fly, Railway, Render or a
+   VPS); Vercel or serverless needs #4 first. The host also decides proxy trust
+   for the rate limiter.
 4. **Prisma + Postgres migration** (schema already written; swap the
    repository functions).
-5. **Functional tests.** MOSTLY DONE (2026-09-13): `tests/smoke.mjs`, 63
-   checks, including signed webhooks and the double-booking race (§0). Still
-   to do: a real test-mode card payment through Stripe Elements (needs keys).
+5. **Functional tests.** MOSTLY DONE (2026-09-15): `tests/smoke.mjs`, 90
+   checks via `npm run ci`, including signed webhooks, the double-booking race
+   and the booking panel (§0). Still to do: a real test-mode card payment
+   through Stripe Elements (needs keys).
+5a. **Operations.** DONE in code (2026-09-15): `/api/health`, `npm run ci` in
+   GitHub Actions (push and weekly), `scripts/backup.mjs` with a restore drill
+   (§5). Owner steps: merge approval to fast-forward `main` (it still ships
+   next 16.3.0), optional branch protection requiring the CI job, an uptime
+   monitor on `/api/health`, Stripe failed-webhook email alerts, a nightly
+   backup schedule with off-box storage, and optionally an error sink.
 6. When real content exists: testimonials section, membership/events pages —
    currently excluded on purpose (no fabricated social proof or offers).
 7. **Figma is now three revisions behind** (warm-paper palette, the 2026-09-13
