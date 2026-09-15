@@ -2,10 +2,11 @@ import { requireAdmin } from "@/lib/auth/require";
 import { listBlocks } from "@/lib/db/bookings-repository";
 import { ROOMS, getRoomById } from "@/lib/rooms-data";
 import { SITE } from "@/lib/site-config";
-import { formatDateLong, formatTime12h, nowInZone } from "@/lib/format";
+import { formatDateLong, formatTime12h, nowInZone, operatingHours, shortTime } from "@/lib/format";
 import { BOOKING_CONFIG } from "@/types/domain";
+import { buttonClass } from "@/components/Button";
 import { createBlockAction, deleteBlockAction } from "../actions";
-import { Flash, inputClass, primaryButton } from "../ui";
+import { Flash, inputClass } from "../ui";
 
 export const metadata = { title: "Block-outs" };
 
@@ -16,7 +17,7 @@ export default async function AdminBlocks(props: PageProps<"/admin/blocks">) {
   const sp = await props.searchParams;
   const today = nowInZone(SITE.timeZone).date;
   const blocks = listBlocks(today);
-  const hours = Array.from({ length: BOOKING_CONFIG.operatingEndHour - BOOKING_CONFIG.operatingStartHour + 1 }, (_, i) => BOOKING_CONFIG.operatingStartHour + i);
+  const starts = operatingHours();
 
   return (
     <div className="flex flex-col gap-8">
@@ -44,20 +45,20 @@ export default async function AdminBlocks(props: PageProps<"/admin/blocks">) {
         <label className="flex flex-col gap-1.5 text-sm font-medium text-text-primary">
           From
           <select name="startTime" className={inputClass} defaultValue={hh(BOOKING_CONFIG.operatingStartHour)}>
-            {hours.slice(0, -1).map((h) => <option key={h} value={hh(h)}>{formatTime12h(hh(h))}</option>)}
+            {starts.map((h) => <option key={h} value={hh(h)}>{shortTime(hh(h))}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-1.5 text-sm font-medium text-text-primary">
           Until
           <select name="endTime" className={inputClass} defaultValue={hh(BOOKING_CONFIG.operatingEndHour)}>
-            {hours.slice(1).map((h) => <option key={h} value={hh(h)}>{formatTime12h(hh(h))}</option>)}
+            {starts.map((h) => <option key={h} value={hh(h + 1)}>{shortTime(hh(h + 1))}</option>)}
           </select>
         </label>
         <label className="col-span-2 flex flex-col gap-1.5 text-sm font-medium text-text-primary md:col-span-1">
           Reason (staff only)
           <input name="reason" required maxLength={200} placeholder="e.g. Lighting repair" className={inputClass} />
         </label>
-        <button className={`${primaryButton} col-span-2 md:col-span-1`}>Block</button>
+        <button className={`${buttonClass()} col-span-2 md:col-span-1`}>Block</button>
       </form>
 
       <section className="flex flex-col gap-3">

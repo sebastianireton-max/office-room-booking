@@ -6,7 +6,9 @@ import { getRoomById } from "@/lib/rooms-data";
 import { formatDateLong, formatTime12h, formatUsd } from "@/lib/format";
 import { isStripeConfigured } from "@/lib/stripe";
 import { cancelBookingAction, dismissIssueAction, refundIssueAction, resendConfirmationAction } from "../../actions";
-import { Flash, StatusPill, inputClass, secondaryButton } from "../../ui";
+import { buttonClass } from "@/components/Button";
+import { Flash, StatusPill, inputClass } from "../../ui";
+import { ISSUE_LABEL } from "../../filters";
 
 export const metadata = { title: "Booking" };
 
@@ -47,13 +49,13 @@ export default async function AdminBookingDetail(props: PageProps<"/admin/bookin
 
       {b.paymentIssue && (
         <section className="flex flex-col gap-4 rounded-token-md border border-error p-5">
-          <h2 className="font-semibold text-error">Charged, but the booking was not confirmed</h2>
-          <p className="text-sm text-text-secondary">{b.paymentIssue} Check the room is still free before rebooking them by hand.</p>
+          <h2 className="font-semibold text-error">{ISSUE_LABEL}</h2>
+          <p className="text-sm text-text-secondary">{b.paymentIssue} Refund them, or check the room is still free and rebook them by hand.</p>
           <div className="flex flex-wrap gap-3">
             {canRefund && (
               <form action={refundIssueAction}>
                 <input type="hidden" name="id" value={b.id} />
-                <button className="inline-flex min-h-11 items-center rounded-token-full bg-error px-5 text-sm font-semibold text-on-success">
+                <button className={buttonClass("danger")}>
                   Refund {formatUsd(b.priceCents)}
                 </button>
               </form>
@@ -61,7 +63,7 @@ export default async function AdminBookingDetail(props: PageProps<"/admin/bookin
             <form action={dismissIssueAction} className="flex flex-wrap gap-2">
               <input type="hidden" name="id" value={b.id} />
               <input name="note" placeholder="How it was handled (optional)" aria-label="Note" className={inputClass} />
-              <button className={secondaryButton}>Mark handled</button>
+              <button className={buttonClass("secondary")}>Mark handled</button>
             </form>
           </div>
         </section>
@@ -80,7 +82,7 @@ export default async function AdminBookingDetail(props: PageProps<"/admin/bookin
         {b.status === "confirmed" && (
           <form action={resendConfirmationAction}>
             <input type="hidden" name="id" value={b.id} />
-            <button className={secondaryButton}>Resend confirmation email</button>
+            <button className={buttonClass("secondary")}>Resend confirmation email</button>
           </form>
         )}
 
@@ -95,7 +97,7 @@ export default async function AdminBookingDetail(props: PageProps<"/admin/bookin
                 Also refund {formatUsd(b.priceCents)} in full through Stripe
               </label>
             )}
-            <button className="inline-flex min-h-11 w-fit items-center rounded-token-full border border-error px-5 text-sm font-semibold text-error hover:bg-error hover:text-on-success">
+            <button className={`${buttonClass("danger-outline")} w-fit`}>
               Cancel booking
             </button>
           </form>

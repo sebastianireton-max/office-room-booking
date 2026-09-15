@@ -1,42 +1,20 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/require";
-import { listBookings, type BookingFilters } from "@/lib/db/bookings-repository";
+import { listBookings } from "@/lib/db/bookings-repository";
 import { ROOMS, getRoomById } from "@/lib/rooms-data";
 import { formatTime12h, formatUsd } from "@/lib/format";
-import type { BookingStatus } from "@/types/domain";
-import { Flash, StatusPill, inputClass, primaryButton } from "../ui";
+import { buttonClass } from "@/components/Button";
+import { Flash, StatusPill, inputClass } from "../ui";
+import { STATUSES, filtersQuery, parseBookingFilters } from "../filters";
 
 export const metadata = { title: "Bookings" };
-
-const STATUSES: [BookingFilters["status"] | "", string][] = [
-  ["", "Any status"],
-  ["confirmed", "Confirmed"],
-  ["pending_payment", "Awaiting payment"],
-  ["cancelled", "Cancelled"],
-  ["expired", "Expired"],
-  ["issue", "Needs refund"],
-];
-
-const str = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
 
 export default async function AdminBookings(props: PageProps<"/admin/bookings">) {
   await requireAdmin("/admin/bookings");
   const sp = await props.searchParams;
-  const date = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
-  const status = STATUSES.some(([s]) => s === str(sp.status)) ? (str(sp.status) as BookingStatus | "issue") : undefined;
-  const filters: BookingFilters = {
-    status,
-    roomId: getRoomById(str(sp.room) ?? "") ? str(sp.room) : undefined,
-    from: date(str(sp.from)),
-    to: date(str(sp.to)),
-    q: str(sp.q)?.slice(0, 100),
-  };
+  const filters = parseBookingFilters((k) => sp[k]);
   const bookings = listBookings(filters);
-  const query = new URLSearchParams(Object.entries(filters).filter(([, v]) => v) as [string, string][]);
-  if (filters.roomId) {
-    query.delete("roomId");
-    query.set("room", filters.roomId);
-  }
+  const query = filtersQuery(filters);
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,7 +29,8 @@ export default async function AdminBookings(props: PageProps<"/admin/bookings">)
       <form className="grid grid-cols-2 gap-3 rounded-token-md bg-surface p-4 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr_auto]">
         <input name="q" defaultValue={filters.q} placeholder="Name, email or reference" aria-label="Search" className={`${inputClass} col-span-2 md:col-span-1`} />
         <select name="status" defaultValue={filters.status ?? ""} aria-label="Status" className={inputClass}>
-          {STATUSES.map(([v, l]) => <option key={l} value={v}>{l}</option>)}
+          <option value="">Any status</option>
+          {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         <select name="room" defaultValue={filters.roomId ?? ""} aria-label="Room" className={inputClass}>
           <option value="">Any room</option>
@@ -59,7 +38,7 @@ export default async function AdminBookings(props: PageProps<"/admin/bookings">)
         </select>
         <input type="date" name="from" defaultValue={filters.from} aria-label="From date" className={inputClass} />
         <input type="date" name="to" defaultValue={filters.to} aria-label="To date" className={inputClass} />
-        <button className={primaryButton}>Filter</button>
+        <button className={buttonClass()}>Filter</button>
       </form>
 
       <p className="text-sm text-text-secondary">
@@ -70,9 +49,11 @@ export default async function AdminBookings(props: PageProps<"/admin/bookings">)
         <table className="w-full min-w-[48rem] border-collapse text-sm">
           <thead className="bg-surface text-left text-text-secondary">
             <tr>
-              {["When", "Room", "Customer", "Total", "Status", ""].map((h) => (
+              {["When", "Room", "Customer", "Total", "Status"].map((h) => (
                 <th key={h} className="border-b border-border-subtle p-3 font-medium">{h}</th>
               ))}
+              {/* relative: an absolute sr-only span would otherwise escape the scroll box and widen the page. */}
+              <th className="relative border-b border-border-subtle p-3"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>

@@ -3,13 +3,14 @@ import { requireAdmin } from "@/lib/auth/require";
 import { adminStats, bookingsOnDate, listBookings } from "@/lib/db/bookings-repository";
 import { ROOMS, getRoomById } from "@/lib/rooms-data";
 import { SITE, SITE_URL } from "@/lib/site-config";
-import { formatTime12h, formatUsd, formatDateLong, nowInZone } from "@/lib/format";
+import { formatTime12h, formatUsd, formatDateLong, nowInZone, operatingHours, shortTime } from "@/lib/format";
 import { isStripeConfigured } from "@/lib/stripe";
 import { isEmailConfigured } from "@/lib/email";
-import { BOOKING_CONFIG } from "@/types/domain";
 import { StatusPill } from "./ui";
+import { ISSUE_LABEL } from "./filters";
 
-export const metadata = { title: "Today" };
+// absolute: a page does not pick up the template of the layout in its own segment.
+export const metadata = { title: { absolute: "Today · Admin" } };
 
 function setupChecks() {
   const env = process.env;
@@ -31,7 +32,7 @@ export default async function AdminHome() {
   const issues = listBookings({ status: "issue" }, 20);
   const checks = setupChecks();
   const failing = checks.filter((c) => !c.ok);
-  const hours = Array.from({ length: BOOKING_CONFIG.operatingEndHour - BOOKING_CONFIG.operatingStartHour }, (_, i) => BOOKING_CONFIG.operatingStartHour + i);
+  const hours = operatingHours();
 
   return (
     <div className="flex flex-col gap-10">
@@ -45,18 +46,18 @@ export default async function AdminHome() {
           ["Booked today", String(stats.todayCount)],
           ["Upcoming", String(stats.upcomingCount)],
           ["Revenue this month", formatUsd(stats.monthRevenueCents)],
-          ["Need a refund", String(stats.issueCount)],
+          [ISSUE_LABEL, String(stats.issueCount)],
         ].map(([k, v]) => (
           <div key={k} className="flex flex-col gap-1 bg-surface p-5">
             <dt className="text-sm text-text-secondary">{k}</dt>
-            <dd className={`tabular text-3xl font-semibold ${k === "Need a refund" && v !== "0" ? "text-error" : "text-text-primary"}`}>{v}</dd>
+            <dd className={`tabular text-3xl font-semibold ${k === ISSUE_LABEL && v !== "0" ? "text-error" : "text-text-primary"}`}>{v}</dd>
           </div>
         ))}
       </dl>
 
       {issues.length > 0 && (
         <section className="flex flex-col gap-3 rounded-token-md border border-error p-5">
-          <h2 className="font-semibold text-error">Charged but not booked</h2>
+          <h2 className="font-semibold text-error">{ISSUE_LABEL}</h2>
           <p className="text-sm text-text-secondary">
             These customers paid after their hold ran out, so the slot was not given to them. Refund or rebook each one.
           </p>
@@ -83,7 +84,7 @@ export default async function AdminHome() {
                 <th className="w-44 border-b border-border-subtle p-3 text-left font-medium text-text-secondary">Room</th>
                 {hours.map((h) => (
                   <th key={h} className="tabular border-b border-l border-border-subtle p-2 text-left text-xs font-normal text-text-secondary">
-                    {formatTime12h(`${String(h).padStart(2, "0")}:00`).replace(":00", "")}
+                    {shortTime(`${String(h).padStart(2, "0")}:00`)}
                   </th>
                 ))}
               </tr>
@@ -103,7 +104,7 @@ export default async function AdminHome() {
                           <Link
                             href={`/admin/bookings/${b.id}`}
                             title={`${b.customerName}, ${formatTime12h(b.startTime)} to ${formatTime12h(b.endTime)}`}
-                            className={`block h-full truncate rounded-[6px] px-1.5 py-1 text-xs ${b.status === "confirmed" ? "bg-accent text-on-accent" : "bg-surface-raised text-text-secondary"}`}
+                            className={`block h-full truncate rounded-token-sm px-1.5 py-1 text-xs ${b.status === "confirmed" ? "bg-success text-on-status" : "border border-dashed border-border-default text-text-secondary"}`}
                           >
                             {b.startTime === `${String(hours[i]).padStart(2, "0")}:00` ? b.customerName.split(" ")[0] : ""}
                           </Link>
@@ -137,7 +138,7 @@ export default async function AdminHome() {
         <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
           {checks.map((c) => (
             <li key={c.label} className="flex gap-4 py-3 text-sm">
-              <span className={`tabular w-10 shrink-0 font-semibold ${c.ok ? "text-text-accent" : "text-error"}`}>{c.ok ? "OK" : "TODO"}</span>
+              <span className={`tabular w-10 shrink-0 font-semibold ${c.ok ? "text-text-primary" : "text-error"}`}>{c.ok ? "OK" : "TODO"}</span>
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium text-text-primary">{c.label}</span>
                 {!c.ok && <span className="text-text-secondary">{c.fix}</span>}

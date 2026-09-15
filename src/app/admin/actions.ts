@@ -110,7 +110,8 @@ export async function resendConfirmationAction(formData: FormData) {
   if (!sent) back(path, "error", "Email did not send. Check RESEND_API_KEY and EMAIL_FROM.");
   markConfirmationSent(id);
   recordAudit(admin.email, "resend-confirmation", id);
-  back(path, "notice", `Confirmation sent to ${booking!.customerEmail}.`);
+  // No customer email in the redirect: query strings land in history and access logs.
+  back(path, "notice", "Confirmation sent.");
 }
 
 const hhmm = z.string().regex(/^\d{2}:\d{2}$/);
@@ -144,7 +145,7 @@ export async function createBlockAction(formData: FormData) {
     "/admin/blocks",
     "notice",
     clashes.length
-      ? `Blocked. ${clashes.length} confirmed booking(s) already sit inside this window and were NOT cancelled: ${clashes
+      ? `Blocked. ${clashes.length} confirmed booking${clashes.length === 1 ? " already sits" : "s already sit"} inside this window and ${clashes.length === 1 ? "was" : "were"} NOT cancelled: ${clashes
           .map((b) => b.id.slice(0, 8))
           .join(", ")}.`
       : "Blocked. Those times no longer show as bookable."

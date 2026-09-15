@@ -4,10 +4,22 @@ import { listAudit } from "@/lib/db/accounts-repository";
 
 export const metadata = { title: "Activity" };
 
+const ACTION_LABEL: Record<string, string> = {
+  "export-csv": "Exported CSV",
+  cancel: "Cancelled",
+  "cancel+refund": "Cancelled and refunded",
+  "refund-issue": "Refunded charge",
+  "dismiss-issue": "Marked handled",
+  "resend-confirmation": "Resent confirmation",
+  block: "Blocked time",
+  unblock: "Removed block",
+};
+
+const UUID = /^[0-9a-f-]{36}$/;
+
 export default async function AdminActivity() {
   await requireAdmin("/admin/activity");
   const entries = listAudit(200);
-  const isBooking = (t: string) => /^[0-9a-f-]{36}$/.test(t);
 
   return (
     <div className="flex flex-col gap-6">
@@ -28,12 +40,12 @@ export default async function AdminActivity() {
                 <tr key={i} className="border-b border-border-subtle last:border-0">
                   <td className="tabular p-3 text-text-secondary">{new Date(e.created_at).toLocaleString("en-US")}</td>
                   <td className="p-3 text-text-primary">{e.actor_email}</td>
-                  <td className="p-3 font-medium text-text-primary">{e.action}</td>
+                  <td className="p-3 font-medium text-text-primary">{ACTION_LABEL[e.action] ?? e.action}</td>
                   <td className="tabular p-3">
-                    {isBooking(e.target) && !e.action.includes("block") ? (
+                    {UUID.test(e.target) && !e.action.includes("block") ? (
                       <Link href={`/admin/bookings/${e.target}`} className="text-text-accent hover:underline">{e.target.slice(0, 8)}</Link>
                     ) : (
-                      <span className="text-text-secondary">{e.target.slice(0, 40)}</span>
+                      <span className="text-text-secondary">{UUID.test(e.target) ? e.target.slice(0, 8) : e.target.slice(0, 40)}</span>
                     )}
                   </td>
                   <td className="p-3 text-text-secondary">{e.detail}</td>

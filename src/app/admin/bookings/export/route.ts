@@ -3,7 +3,7 @@ import { getCurrentUser, isAdmin } from "@/lib/auth/session";
 import { listBookings } from "@/lib/db/bookings-repository";
 import { recordAudit } from "@/lib/db/accounts-repository";
 import { getRoomById } from "@/lib/rooms-data";
-import type { BookingStatus } from "@/types/domain";
+import { parseBookingFilters } from "../../filters";
 
 /** CSV of bookings matching the list filters. Contains customer PII: admin only. */
 export async function GET(req: NextRequest) {
@@ -11,17 +11,7 @@ export async function GET(req: NextRequest) {
   if (!isAdmin(admin)) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
   const p = req.nextUrl.searchParams;
-  const date = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
-  const rows = listBookings(
-    {
-      status: (p.get("status") || undefined) as BookingStatus | "issue" | undefined,
-      roomId: p.get("room") || undefined,
-      from: date(p.get("from")),
-      to: date(p.get("to")),
-      q: p.get("q")?.slice(0, 100) || undefined,
-    },
-    10_000
-  );
+  const rows = listBookings(parseBookingFilters((k) => p.get(k)), 10_000);
 
   // Leading = + - @ would make a spreadsheet evaluate the cell as a formula.
   const cell = (v: unknown) => {
