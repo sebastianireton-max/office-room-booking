@@ -3,13 +3,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getRoomById, ROOMS } from "@/lib/rooms-data";
-import { SITE_URL } from "@/lib/site-config";
+import { SITE, SITE_URL } from "@/lib/site-config";
 import { MediaSlot } from "@/components/MediaSlot";
 import Image from "next/image";
 import { JsonLd } from "@/components/JsonLd";
-import { formatUsd, formatUsdPerHour } from "@/lib/format";
+import { formatUsdPerHour } from "@/lib/format";
 import { BookingFlow } from "@/components/booking/BookingFlow";
-import { ROOM_TYPE_LABELS } from "@/types/domain";
+import { BOOKING_CONFIG, ROOM_TYPE_LABELS } from "@/types/domain";
 
 export function generateStaticParams() {
   return ROOMS.filter((r) => r.active).map((r) => ({ id: r.id }));
@@ -19,11 +19,21 @@ export async function generateMetadata(props: PageProps<"/rooms/[id]">): Promise
   const room = getRoomById((await props.params).id);
   if (!room) return {};
   const title = `${room.name}: ${ROOM_TYPE_LABELS[room.type].toLowerCase()} room, ${formatUsdPerHour(room.hourlyRateCents)}`;
+  const description = `${room.tagline} ${room.description}`;
   return {
     title,
-    description: `${room.tagline} ${room.description}`,
+    description,
     alternates: { canonical: `/rooms/${room.id}` },
-    openGraph: { title, description: room.tagline, url: `/rooms/${room.id}`, images: [`/rooms/og/${room.id}.png`] },
+    // openGraph replaces the root layout's object wholesale, so repeat its fields.
+    openGraph: {
+      title,
+      description,
+      url: `/rooms/${room.id}`,
+      type: "website",
+      siteName: SITE.name,
+      locale: "en_US",
+      images: [`/rooms/og/${room.id}.png`],
+    },
   };
 }
 
@@ -68,8 +78,7 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
             "@type": "BreadcrumbList",
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-              { "@type": "ListItem", position: 2, name: "Rooms", item: `${SITE_URL}/#rooms` },
-              { "@type": "ListItem", position: 3, name: room.name, item: url },
+              { "@type": "ListItem", position: 2, name: room.name, item: url },
             ],
           },
         ]}
@@ -91,34 +100,40 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
             <h1 className="font-display text-5xl font-semibold leading-[0.98] text-text-primary sm:text-7xl">{room.name}</h1>
             <p className="text-xl text-text-secondary sm:text-2xl">{room.tagline}</p>
           </div>
-          <dl className="grid grid-cols-3 gap-6 border-t border-border-subtle pt-5 lg:border-t-0 lg:pt-0">
-            {[
-              ["Type", ROOM_TYPE_LABELS[room.type]],
-              ["Fits", `${room.capacity} people`],
-              ["Size", `${room.sqft} sq ft`],
-            ].map(([k, v]) => (
-              <div key={k} className="flex flex-col gap-1">
-                <dt className="text-sm text-text-secondary">{k}</dt>
-                <dd className="tabular font-semibold text-text-primary">{v}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="flex flex-col gap-3 border-t border-border-subtle pt-5 lg:border-t-0 lg:pt-0">
+            <dl className="grid grid-cols-2 gap-x-6 sm:grid-cols-4 gap-y-4">
+              {[
+                ["Type", ROOM_TYPE_LABELS[room.type], ""],
+                ["Fits", `${room.capacity} people`, "tabular-nums"],
+                ["Size", `${room.sqft} sq ft`, "tabular-nums"],
+                ["Rate", formatUsdPerHour(room.hourlyRateCents), "tabular"],
+              ].map(([k, v, figures]) => (
+                <div key={k} className="flex flex-col gap-1">
+                  <dt className="text-sm text-text-secondary">{k}</dt>
+                  <dd className={`whitespace-nowrap font-semibold text-text-primary ${figures}`}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="text-sm text-text-secondary">
+              Starts on the hour · 1 to 3 hours · {BOOKING_CONFIG.minBookingNoticeHours} hours&apos; notice same day
+            </p>
+          </div>
         </div>
       </section>
 
-      <figure className="relative">
+      <figure>
         <MediaSlot
           video={room.reel}
           poster={`/rooms/art/${room.id}.webp`}
           alt={`Illustration of ${room.name}: ${room.description}`}
-          priority
+          preload
           sizes="100vw"
-          className="aspect-[16/10] w-full sm:aspect-[21/9]"
-          imageClassName="object-cover"
+          className="aspect-[16/10] w-full sm:aspect-[21/9] lg:max-h-[40vh]"
+          imageClassName="object-cover object-center"
         />
         {!room.reel && (
-          <figcaption className="absolute bottom-3 left-3 rounded-token-full bg-surface/90 px-3 py-1 text-xs text-text-secondary">
-            Illustration of the setup
+          <figcaption className="px-6 pt-3 text-sm text-text-secondary">
+            <span className="mx-auto block max-w-6xl">Illustration of the setup</span>
           </figcaption>
         )}
       </figure>
@@ -127,12 +142,12 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16">
           <div className="order-2 flex flex-col gap-12 lg:order-1">
             <section className="flex flex-col gap-4">
-              <h2 className="font-display text-3xl font-semibold text-text-primary">About the room</h2>
+              <h2 className="type-section text-text-primary">About the room</h2>
               <p className="text-lg leading-relaxed text-text-secondary">{room.marketingDescription}</p>
             </section>
 
             <section className="flex flex-col gap-4">
-              <h2 className="font-display text-3xl font-semibold text-text-primary">Included in the rate</h2>
+              <h2 className="type-section text-text-primary">Included in the rate</h2>
               <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
                 {room.equipment.map((item) => (
                   <li key={item} className="border-t border-border-subtle pt-3 leading-snug text-text-primary">
@@ -143,28 +158,8 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
             </section>
 
             <section className="flex flex-col gap-4">
-              <h2 className="font-display text-3xl font-semibold text-text-primary">Good for</h2>
-              <ul className="flex flex-wrap gap-2">
-                {room.idealFor.map((use) => (
-                  <li key={use} className="rounded-token-full border border-border-default px-4 py-2 text-sm text-text-primary">
-                    {use}
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="flex flex-col gap-3 rounded-token-md bg-surface p-6">
-              <h2 className="text-lg font-semibold text-text-primary">Rates</h2>
-              <p className="tabular text-text-secondary">
-                1 hour {formatUsd(room.hourlyRateCents)} · 2 hours {formatUsd(room.hourlyRateCents * 2)} · 3 hours{" "}
-                {formatUsd(room.hourlyRateCents * 3)}
-              </p>
-              <p className="text-sm text-text-secondary">
-                The total at checkout is the total you pay.{" "}
-                <Link href="/faq" className="font-medium text-text-accent hover:underline">
-                  Booking questions
-                </Link>
-              </p>
+              <h2 className="type-section text-text-primary">Good for</h2>
+              <p className="text-lg leading-relaxed text-text-primary">{room.idealFor.join(", ")}</p>
             </section>
           </div>
 
@@ -179,7 +174,7 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
       {room.clips && room.clips.length > 0 && (
         <section className="border-t border-border-subtle px-6 py-16">
           <div className="mx-auto max-w-6xl">
-            <h2 className="mb-8 font-display text-3xl font-semibold text-text-primary">Inside the room</h2>
+            <h2 className="type-section mb-8 text-text-primary">Inside the room</h2>
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
               {room.clips.map((clip, i) => (
                 <MediaSlot
@@ -198,15 +193,16 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
       )}
 
       {others.length > 0 && (
-        <section className="bg-surface px-6 py-14">
+        <section className="border-t border-border-subtle px-6 py-14">
           <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
-            <h2 className="font-display text-3xl font-semibold text-text-primary">Other rooms</h2>
+            <h2 className="type-section text-text-primary">Other rooms</h2>
             <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
               {others.map((r) => (
                 <li key={r.id}>
                   <Link href={`/rooms/${r.id}`} className="group flex min-h-16 items-center gap-4 py-3">
-                    <span className="relative h-12 w-16 shrink-0 overflow-hidden rounded-[6px]">
-                      <Image src={`/rooms/art/${r.id}.webp`} alt="" fill sizes="64px" className="object-cover" />
+                    <span className="relative h-12 w-16 shrink-0 overflow-hidden rounded-token-sm">
+                      {/* The 16:9 art covers a 4:3 box, so it renders ~86px wide, not 64. */}
+                      <Image src={`/rooms/art/${r.id}.webp`} alt="" fill sizes="96px" className="object-cover" />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="font-semibold text-text-primary group-hover:text-text-accent">{r.name}</span>

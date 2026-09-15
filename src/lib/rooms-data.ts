@@ -1,13 +1,14 @@
 import type { Room } from "@/types/domain";
 
 /**
- * The six placeholder rooms — two Content, two Podcast, two Conference.
- * Matches the design package (Section 5.2) exactly.
+ * The room catalog: two Content, two Podcast, two Conference rooms.
  *
- * This is the ONLY place room data is defined. Everything else (filters,
- * badges, cards, seed script) reads from here. Add a seventh room, or a
- * fourth category, by editing this list and ROOM_TYPE_LABELS in
- * src/types/domain.ts — no component or page needs to change.
+ * This is the only place room data is defined; pages, the booking engine and
+ * pricing all read from here. Add a room, or a category (with
+ * ROOM_TYPE_LABELS in src/types/domain.ts), by editing this list.
+ *
+ * Marketing copy must stay grounded in each room's equipment list: no claims
+ * the listed gear does not back up.
  */
 export const ROOMS: Room[] = [
   {
@@ -18,7 +19,7 @@ export const ROOMS: Room[] = [
     sqft: 300,
     hourlyRateCents: 4500,
     description:
-      "Bright, modular content studio built for batch-producing TikTok and Reels content, with a motorized interchangeable backdrop wall.",
+      "A modular content studio for batching TikTok and Reels, with a motorized interchangeable backdrop wall.",
     equipment: [
       "Motorized backdrop system (pink / green screen / white paper)",
       "3× ring lights + RGB tube lights",
@@ -28,7 +29,7 @@ export const ROOMS: Room[] = [
     active: true,
     tagline: "Batch a month of content in one afternoon.",
     marketingDescription:
-      "The Loft is built around one idea: momentum. The motorized backdrop wall swaps your set in seconds: pink, green screen, or clean white paper, so you can shoot ten looks without ever breaking flow. Three lit stations mean your whole team can film at once, and the wireless lapel mics keep every take usable straight off the phone.",
+      "The motorized backdrop wall changes your set between pink, green screen and white paper, so one session can cover several looks. Three ring lights, RGB tube lights and three phone tripod mounts let more than one setup run at once, and a two-pack of DJI Mic 2 wireless lapel mics covers two speakers.",
     idealFor: ["TikTok & Reels batching", "UGC creators", "Product try-ons & hauls", "Small brand shoots"],
   },
   {
@@ -47,9 +48,9 @@ export const ROOMS: Room[] = [
       "1× wireless lapel mic",
     ],
     active: true,
-    tagline: "Your first studio, minus the setup.",
+    tagline: "Your first studio, lights included.",
     marketingDescription:
-      "One clean white set, two ring lights, and a mic that's already on its stand when you walk in. The Studio strips filming down to the part that matters: you, on camera, without hauling gear or lighting a room from scratch. Ideal when it's just you (or you plus one) and a list of videos to knock out.",
+      "One white muslin backdrop, two ring lights, a phone tripod mount and a wireless lapel mic you clip on, all included in the rate. The Studio is sized for filming on your own or with one other person, without bringing your own lights. Good when you have a list of videos to get through.",
     idealFor: ["Solo creators", "Talking-head video", "Tutorials & how-tos", "Two-person shoots"],
   },
   {
@@ -70,7 +71,7 @@ export const ROOMS: Room[] = [
     active: true,
     tagline: "Press record. Sound like a network show.",
     marketingDescription:
-      "Four broadcast mics on boom arms, three cameras already framed, and full acoustic treatment on every wall. The Suite is what your show sounds like when the room stops working against you. Walk in, sit down, hit record; leave with multi-cam video and clean audio for up to four hosts, no engineering degree required.",
+      "Four Shure SM7B mics on boom arms, three Sony FX30 cameras in a static multi-cam setup, and acoustic treatment on every wall, lit by overhead LED key lights and softboxes. The Suite seats up to four hosts, so a panel or a multi-host show can record audio and video in one session.",
     idealFor: ["Multi-host shows", "Video podcasts", "Interview series", "Panel recordings"],
   },
   {
@@ -89,9 +90,9 @@ export const ROOMS: Room[] = [
       "Softbox lighting kit",
     ],
     active: true,
-    tagline: "Two chairs, two mics, zero echo.",
+    tagline: "Two chairs, two mics, treated walls.",
     marketingDescription:
-      "Sized for exactly what most episodes actually are: two people and a real conversation. The same broadcast mics as the big suite, a camera setup that's already framed for two, and acoustic treatment that keeps small-room echo out of your recording. Book it for an hour, leave with an episode.",
+      "Sized for two people and a conversation. The same Shure SM7B mics as the Podcast Suite, a static multi-cam setup, partial acoustic wall treatment and a softbox lighting kit. A good fit for interviews, co-hosted episodes and voiceover sessions.",
     idealFor: ["Interview shows", "Co-hosted episodes", "Audio-first podcasts", "Voiceover sessions"],
   },
   {
@@ -104,7 +105,7 @@ export const ROOMS: Room[] = [
     description:
       "A sound-isolated executive boardroom for client meetings, board sessions, and presentations.",
     equipment: [
-      '75" display, AirPlay + HDMI',
+      "75-inch display, AirPlay and HDMI",
       "4K speaker-tracking webcam",
       "Ceiling microphone array",
       "Dedicated fiber Wi-Fi network",
@@ -112,7 +113,7 @@ export const ROOMS: Room[] = [
     active: true,
     tagline: "Walk in prepared. Walk out decided.",
     marketingDescription:
-      "Sound-isolated, seats ten, and wired so the technology disappears: a 75-inch display that connects the moment you walk in, a camera that tracks whoever's speaking, and a ceiling mic array that means nobody leans into anything. The Boardroom is for the meetings where the impression matters as much as the agenda.",
+      "Sound-isolated and seats ten: a 75-inch display with AirPlay and HDMI, a 4K webcam that tracks whoever is speaking, and a ceiling microphone array for the table. The Boardroom is for the meetings where the impression matters as much as the agenda.",
     idealFor: ["Client presentations", "Board sessions", "Hybrid meetings", "Workshops & strategy days"],
   },
   {
@@ -125,7 +126,7 @@ export const ROOMS: Room[] = [
     description:
       "A smaller sound-isolated meeting room for team syncs and small-group client calls.",
     equipment: [
-      '55" display, AirPlay + HDMI',
+      "55-inch display, AirPlay and HDMI",
       "4K webcam",
       "Ceiling microphone",
       "Dedicated fiber Wi-Fi network",
@@ -133,7 +134,7 @@ export const ROOMS: Room[] = [
     active: true,
     tagline: "Small room. Serious signal.",
     marketingDescription:
-      "Everything the Boardroom promises, scaled for six: sound isolation, one-tap screen sharing on a 55-inch display, and a ceiling mic that picks up the whole table evenly. The Meeting Room is the fix for taking an important call from a coffee shop, or worse, a car.",
+      "Sound-isolated and seats six: screen sharing to a 55-inch display over AirPlay or HDMI, a 4K webcam, and a ceiling microphone for the table. The Meeting Room is the fix for taking an important call from a coffee shop, or worse, a car.",
     idealFor: ["Team syncs", "Client calls", "Working sessions", "Interviews"],
   },
 ];
