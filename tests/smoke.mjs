@@ -86,6 +86,12 @@ check("hold response carries no email", !JSON.stringify(firstBody).includes("gue
 check("second hold on same slot is refused", (await hold({ date: day(3), startTime: "10:00" })).status === 409);
 const publicRead = await (await get(`/api/bookings/${firstBody.booking.id}`)).json();
 check("public booking read hides PII", !JSON.stringify(publicRead).includes("guest@smoke.test") && publicRead.booking.status === "pending_payment");
+const patchHold = (body) =>
+  get("/api/bookings/hold", { method: "PATCH", headers: { "Content-Type": "application/json", "x-forwarded-for": `10.0.0.${++ip}` }, body: JSON.stringify(body) });
+const fix = { bookingId: firstBody.booking.id, customerName: "Smoke Test Fixed", customerEmail: "guest@smoke.test", customerPhone: "555 0100" };
+check("live hold accepts corrected details", (await patchHold(fix)).status === 200);
+check("corrected details bad email gets a field error", (await (await patchHold({ ...fix, customerEmail: "nope" })).json()).fieldErrors?.customerEmail);
+check("unknown hold refuses a details change", (await patchHold({ ...fix, bookingId: randomUUID() })).status === 409);
 
 const formula = await (await hold({ date: day(3), startTime: "15:00", customerName: "=HYPERLINK(\"x\")" })).json();
 
@@ -142,6 +148,8 @@ check("released slot can be held again", rehold.status === 200);
 // --- Calendar file ------------------------------------------------------------
 const ics = await get(`/api/bookings/${firstBody.booking.id}/calendar`);
 check("confirmed booking downloads as text/calendar", ics.status === 200 && ics.headers.get("content-type")?.includes("text/calendar"));
+const icsText = await ics.text();
+check(".ics pins UTC times and carries no customer", /DTSTART:\d{8}T\d{6}Z/.test(icsText) && !icsText.includes("ATTENDEE") && !icsText.includes("smoke.test"), icsText);
 check("pending booking has no calendar file", (await get(`/api/bookings/${pending.booking.id}/calendar`)).status === 404);
 
 // --- Double-booking race: 12 customers, one slot, same instant -------------------

@@ -17,7 +17,7 @@ export default function NotFound() {
         <p className="max-w-[65ch] text-lg text-text-secondary">The link may be old. These will get you where you were going:</p>
         <ul className="flex flex-wrap gap-3">
           <li>
-            <Button href="/#rooms">Find an open room</Button>
+            <Button variant="ghost" href="/#rooms">Find an open room</Button>
           </li>
           {ROOMS.filter((r) => r.active).map((r) => (
             <li key={r.id}>

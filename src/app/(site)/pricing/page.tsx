@@ -32,10 +32,10 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Mobile: stacked cards. Desktop: full table. */}
-        <ul className="flex flex-col gap-4 md:hidden">
+        {/* Mobile: hairline rows. Desktop: full table. */}
+        <ul className="flex flex-col border-t border-border-default md:hidden">
           {rooms.map((room) => (
-            <li key={room.id} className="flex flex-col gap-2 rounded-token-md bg-surface p-5 shadow-[var(--shadow-subtle)]">
+            <li key={room.id} className="flex flex-col gap-2 border-b border-border-subtle py-4">
               <div className="flex items-baseline justify-between gap-3">
                 <Link href={`/rooms/${room.id}#book`} className="type-subhead text-text-primary hover:text-text-accent">
                   {room.name}

@@ -5,7 +5,6 @@ import { SITE } from "@/lib/site-config";
 import { FAQS } from "@/lib/faq";
 import { RoomBoard } from "@/components/RoomBoard";
 import { Button } from "@/components/Button";
-import { BOOKING_CONFIG } from "@/types/domain";
 
 export const metadata: Metadata = {
   description: `${SITE.tagline} Pick an exact date and start time, pay securely, and get a calendar invite.`,
@@ -14,7 +13,7 @@ export const metadata: Metadata = {
 
 const STEPS = [
   ["Pick a time", "Choose a day, a length and an open start time on any room."],
-  ["Pay to lock it in", `Your slot is held for ${BOOKING_CONFIG.holdDurationMinutes} minutes while you pay by card through Stripe.`],
+  ["Pay to lock it in", "Your slot is held while you enter your details and pay by card through Stripe. The payment step shows when the hold ends."],
   ["Walk in and work", "The confirmation email carries a calendar invite. Everything on the room’s list is included."],
 ];
 
@@ -66,14 +65,16 @@ export default function HomePage() {
             <h2 id="steps-heading" className="type-section mb-10 text-text-primary">
               How booking works
             </h2>
-            <ol className="grid gap-10 md:grid-cols-3 md:gap-12">
+            <ol className="flex max-w-[65ch] flex-col gap-6">
               {STEPS.map(([title, body], i) => (
-                <li key={title} className="flex flex-col gap-2">
-                  <span className="font-display text-4xl font-semibold leading-none text-text-accent" aria-hidden="true">
-                    {i + 1}
+                <li key={title} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3">
+                  <span className="type-subhead tabular-nums text-text-secondary" aria-hidden="true">
+                    {i + 1}.
                   </span>
-                  <h3 className="type-subhead mt-2 text-text-primary">{title}</h3>
-                  <p className="max-w-[40ch] leading-relaxed text-text-secondary">{body}</p>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="type-subhead text-text-primary">{title}</h3>
+                    <p className="leading-relaxed text-text-secondary">{body}</p>
+                  </div>
                 </li>
               ))}
             </ol>

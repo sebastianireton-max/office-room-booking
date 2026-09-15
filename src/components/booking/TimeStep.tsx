@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { BOOKING_CONFIG } from "@/types/domain";
 import { addDaysIso, formatDateShort, formatUsd, priceCents, shortTime, zoneAbbrev, zoneLabel } from "@/lib/format";
 import { SITE } from "@/lib/site-config";
@@ -51,11 +51,25 @@ export function TimeStep(p: Props) {
   const canNext = nextWeek <= maxDate;
 
   const [week, setWeek] = useState<{ key: string; counts: Record<string, number> } | null>(null);
-  const [slotsState, setSlotsState] = useState<{ key: string; slots: TimeSlot[] | null; error: boolean } | null>(null);
+  const [slotsState, setSlotsState] = useState<{ key: string; slots: TimeSlot[] | null; error: false | "busy" | "failed" } | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const dateGroupRef = useRef<HTMLDivElement>(null);
+  const focusDate = useRef(false);
 
-  const weekKey = `${p.room.id}|${weekStart}|${p.durationMinutes}|${p.refreshKey}`;
-  const slotsKey = `${p.room.id}|${p.date}|${p.durationMinutes}|${p.refreshKey}`;
+  const weekKey = `${p.room.id}|${weekStart}|${p.durationMinutes}|${p.refreshKey}|${retry}`;
+  const slotsKey = `${p.room.id}|${p.date}|${p.durationMinutes}|${p.refreshKey}|${retry}`;
+
+  // "Next available" and "Try the next week" unmount themselves; keep keyboard focus on the new date.
+  const jumpTo = (d: string) => {
+    focusDate.current = true;
+    p.onDate(d);
+  };
+  useEffect(() => {
+    if (!focusDate.current) return;
+    focusDate.current = false;
+    dateGroupRef.current?.querySelector<HTMLInputElement>("input:checked")?.focus();
+  }, [p.date]);
   const { onSlotsLoaded } = p;
 
   useEffect(() => {
@@ -74,13 +88,13 @@ export function TimeStep(p: Props) {
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/availability?roomId=${p.room.id}&date=${p.date}&durationMinutes=${p.durationMinutes}`, { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(res.status === 429 ? "busy" : "failed"))))
       .then((data: { slots: TimeSlot[] }) => {
         setSlotsState({ key: slotsKey, slots: data.slots, error: false });
         onSlotsLoaded(data.slots);
       })
       .catch((err) => {
-        if (err.name !== "AbortError") setSlotsState({ key: slotsKey, slots: null, error: true });
+        if (err.name !== "AbortError") setSlotsState({ key: slotsKey, slots: null, error: err.message === "busy" ? "busy" : "failed" });
       });
     return () => controller.abort();
   }, [slotsKey, p.room.id, p.date, p.durationMinutes, onSlotsLoaded]);
@@ -161,6 +175,7 @@ export function TimeStep(p: Props) {
           </div>
         </div>
         <div
+          ref={dateGroupRef}
           role="radiogroup"
           aria-labelledby={`${ids}-date`}
           className="-mx-3 grid grid-cols-7 gap-0.5 sm:mx-0 sm:gap-1.5"
@@ -230,18 +245,29 @@ export function TimeStep(p: Props) {
           </p>
         )}
         {!current && <p className="text-sm text-text-secondary">Checking open times…</p>}
-        {current?.error && <p className="text-sm text-error">Couldn&apos;t load open times. Check your connection and try again.</p>}
+        {current?.error && (
+          <div className="flex flex-col items-start gap-1">
+            <p className="text-sm text-error">
+              {current.error === "busy"
+                ? "Too many lookups in a short time. Wait a moment, then try again."
+                : "Couldn't load open times. Check your connection and try again."}
+            </p>
+            <button type="button" onClick={() => setRetry((n) => n + 1)} className="inline-flex min-h-11 items-center text-sm font-medium text-text-accent hover:underline">
+              Try again
+            </button>
+          </div>
+        )}
         {current?.slots && open.length === 0 && (
           <div className="flex flex-col items-start gap-1">
             <p className="text-sm text-text-primary">Nothing open on {formatDateShort(p.date)}.</p>
             {nextOpenDay ? (
-              <button type="button" onClick={() => p.onDate(nextOpenDay)} className="inline-flex min-h-11 items-center text-sm font-medium text-text-accent hover:underline">
+              <button type="button" onClick={() => jumpTo(nextOpenDay)} className="inline-flex min-h-11 items-center text-sm font-medium text-text-accent hover:underline">
                 Next available: {formatDateShort(nextOpenDay)}
               </button>
             ) : (
               canNext &&
               counts && (
-                <button type="button" onClick={() => p.onDate(nextWeek)} className="inline-flex min-h-11 items-center text-sm font-medium text-text-accent hover:underline">
+                <button type="button" onClick={() => jumpTo(nextWeek)} className="inline-flex min-h-11 items-center text-sm font-medium text-text-accent hover:underline">
                   Try the next week
                 </button>
               )

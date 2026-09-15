@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button } from "@/components/Button";
+import Link from "next/link";
 import { SITE } from "@/lib/site-config";
 
 export const metadata: Metadata = {
@@ -25,9 +25,9 @@ export default function AboutPage() {
             membership. Pick a room and a time, pay, and the room is yours for that booking. The
             equipment listed on each room&rsquo;s page is included in the rate.
           </p>
-          <Button href="/#rooms" size="lg" className="mt-2">
+          <Link href="/#rooms" className="mt-2 inline-flex min-h-11 items-center font-medium text-text-accent underline underline-offset-4">
             Browse the rooms
-          </Button>
+          </Link>
         </div>
 
         {/* PLACEHOLDER: founder story. The owner supplies the real story,

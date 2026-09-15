@@ -15,7 +15,7 @@ export const FAQS: { q: string; a: string; link?: { href: string; label: string 
   },
   {
     q: "Is my time slot reserved while I check out?",
-    a: `Yes. Once you enter your details the slot is held for ${BOOKING_CONFIG.holdDurationMinutes} minutes, and nobody else can book it. If you don’t finish, the hold ends and the slot reopens automatically.`,
+    a: `Yes. Once you enter your details the slot is held for you, and nobody else can book it. The payment step shows exactly when the hold ends (at least ${BOOKING_CONFIG.holdDurationMinutes} minutes). If you don’t finish, the hold ends and the slot reopens automatically.`,
   },
   {
     q: "What equipment is included?",

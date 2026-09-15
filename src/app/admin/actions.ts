@@ -61,8 +61,9 @@ export async function cancelBookingAction(formData: FormData) {
     try {
       refundId = await refund(booking!.stripePaymentIntentId!, id);
     } catch (err) {
-      console.error("Refund failed", err);
-      back(path, "error", `Stripe refused the refund: ${(err as Error).message}. The booking was NOT cancelled.`);
+      // Stripe's message can echo a masked key fragment: log it, keep it out of the URL.
+      console.error("Refund failed", (err as Error).message);
+      back(path, "error", "Stripe refused the refund. Check the server logs. The booking was NOT cancelled.");
     }
   }
 
@@ -84,7 +85,8 @@ export async function refundIssueAction(formData: FormData) {
     resolvePaymentIssue(id, refundId);
     recordAudit(admin.email, "refund-issue", id, refundId);
   } catch (err) {
-    back(path, "error", `Stripe refused the refund: ${(err as Error).message}`);
+    console.error("Refund failed", (err as Error).message);
+    back(path, "error", "Stripe refused the refund. Check the server logs.");
   }
   revalidatePath("/admin", "layout");
   back(path, "notice", "Refunded. Issue cleared.");

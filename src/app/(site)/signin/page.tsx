@@ -24,8 +24,9 @@ export default async function SignInPage(props: PageProps<"/signin">) {
   const error = typeof sp.error === "string" ? ERRORS[sp.error] : undefined;
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 pb-20 pt-12 sm:pb-24 sm:pt-16">
-      <div className="flex w-full max-w-sm flex-col gap-6">
+    <main className="flex-1 px-6 pb-20 pt-12 sm:pb-24 sm:pt-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <div className="flex max-w-sm flex-col gap-6">
         <div className="flex flex-col gap-3">
           <h1 className="type-page text-text-primary">Sign in</h1>
           <p className="text-text-secondary">See and manage your bookings in one place. Booking itself never needs an account.</p>
@@ -65,6 +66,7 @@ export default async function SignInPage(props: PageProps<"/signin">) {
         ) : (
           <p className="rounded-token-sm bg-surface px-4 py-3 text-sm text-text-secondary">{UNAVAILABLE}</p>
         )}
+        </div>
       </div>
     </main>
   );

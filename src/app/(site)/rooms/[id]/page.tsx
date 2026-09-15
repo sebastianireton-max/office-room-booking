@@ -128,7 +128,7 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
           alt={`Illustration of ${room.name}: ${room.description}`}
           preload
           sizes="100vw"
-          className="aspect-[16/10] w-full sm:aspect-[21/9] lg:max-h-[40vh]"
+          className="aspect-[16/10] w-full sm:aspect-[21/9] lg:max-h-[16rem]"
           imageClassName="object-cover object-center"
         />
         {!room.reel && (
@@ -194,9 +194,9 @@ export default async function RoomDetailPage(props: PageProps<"/rooms/[id]">) {
 
       {others.length > 0 && (
         <section className="border-t border-border-subtle px-6 py-14">
-          <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6">
             <h2 className="type-section text-text-primary">Other rooms</h2>
-            <ul className="flex flex-col divide-y divide-border-subtle border-y border-border-subtle">
+            <ul className="flex max-w-3xl flex-col divide-y divide-border-subtle border-y border-border-subtle">
               {others.map((r) => (
                 <li key={r.id}>
                   <Link href={`/rooms/${r.id}`} className="group flex min-h-16 items-center gap-4 py-3">

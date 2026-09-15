@@ -44,14 +44,18 @@ export function BookingFlow({ room }: { room: Room }) {
   const paramDate = params.get("date");
   const paramDuration = Number(params.get("duration"));
   // A time picked on the homepage board arrives as ?date=&start=&duration=.
-  const pendingStart = useRef(/^\d{2}:00$/.test(params.get("start") ?? "") ? params.get("start") : null);
+  const paramDateOk = !!paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate) && paramDate >= today && paramDate <= maxDate;
+  // A start on a rejected date means nothing on today's list: drop it rather than blame the time.
+  const pendingStart = useRef(paramDateOk && /^\d{2}:00$/.test(params.get("start") ?? "") ? params.get("start") : null);
 
   const [stepIndex, setStepIndex] = useState(0);
-  const [date, setDate] = useState(paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate) && paramDate >= today && paramDate <= maxDate ? paramDate : today);
+  const [date, setDate] = useState(paramDateOk ? paramDate! : today);
   const [durationMinutes, setDurationMinutes] = useState(DURATIONS.includes(paramDuration) ? paramDuration : 60);
   const [selectedStart, setSelectedStart] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [slotNotice, setSlotNotice] = useState<string | null>(null);
+  const [slotNotice, setSlotNotice] = useState<string | null>(
+    paramDate && !paramDateOk ? "That date can't be booked online. Pick another date." : null
+  );
 
   const [form, setForm] = useState<Details>({ name: "", email: "", phone: "" });
   const [signedInAs, setSignedInAs] = useState<string | null>(null);
@@ -163,14 +167,40 @@ export function BookingFlow({ room }: { room: Room }) {
       if (!clientSecret && !creatingIntent) void createPaymentIntent(booking.id);
       return;
     }
-    if (sameSlot) {
-      // The server would refuse a second hold on a slot this visitor already holds.
-      setHoldError(`This time is held for you with your earlier details until ${clockInZone(booking.holdExpiresAt!)}. Use those details, or pick a different time.`);
-      return;
-    }
-
     setCreatingHold(true);
     try {
+      if (sameSlot) {
+        // A second hold on a slot this visitor already holds would be refused: correct the details on the live hold.
+        const res = await fetch("/api/bookings/hold", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingId: booking.id,
+            customerName: details.name,
+            customerEmail: details.email,
+            customerPhone: details.phone || null,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setBooking((b) => (b && b.id === data.booking.id ? { ...b, holdExpiresAt: data.booking.holdExpiresAt } : b));
+          setHeldDetails(details);
+          goTo(2);
+          if (!clientSecret && !creatingIntent) void createPaymentIntent(booking.id);
+        } else if (res.status === 400 && data.fieldErrors) {
+          focusInvalid.current = true;
+          setFormErrors({ name: data.fieldErrors.customerName, email: data.fieldErrors.customerEmail, phone: data.fieldErrors.customerPhone });
+        } else if (res.status === 409) {
+          setBooking(null);
+          setHeldDetails(null);
+          setClientSecret(null);
+          backToTimes(data.error ?? "Your hold on this time has ended. Pick a time again.");
+        } else {
+          setHoldError(data.error ?? "Something went wrong saving your details. You have not been charged. Please try again.");
+        }
+        return;
+      }
+
       const res = await fetch("/api/bookings/hold", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -241,7 +271,7 @@ export function BookingFlow({ room }: { room: Room }) {
   const summary = selectionText && (
     <div className="flex flex-col gap-2 border-t border-border-subtle pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="tabular text-sm font-medium text-text-primary">{selectionText}</p>
+        <p className="text-sm font-medium tabular-nums text-text-primary">{selectionText}</p>
         <p className="text-sm text-text-secondary">You won&apos;t be charged yet.</p>
         {stepIndex === 1 && (
           <button type="button" onClick={() => goTo(0)} className="inline-flex min-h-11 items-center self-start text-sm font-medium text-text-accent hover:underline">
@@ -249,8 +279,8 @@ export function BookingFlow({ room }: { room: Room }) {
           </button>
         )}
       </div>
-      <p className="tabular whitespace-nowrap text-sm sm:text-right text-text-secondary">
-        {durationMinutes / 60} h × {formatUsd(room.hourlyRateCents)} = <span className="text-lg font-semibold text-text-primary">{formatUsd(total)}</span>
+      <p className="whitespace-nowrap text-sm tabular-nums text-text-secondary sm:text-right">
+        {durationMinutes / 60} h × {formatUsd(room.hourlyRateCents)} = <span className="tabular text-lg font-semibold text-text-primary">{formatUsd(total)}</span>
       </p>
     </div>
   );
@@ -344,21 +374,9 @@ export function BookingFlow({ room }: { room: Room }) {
             autoComplete="tel"
           />
           {holdError && (
-            <div role="alert" className="flex flex-col items-start gap-1 text-sm text-error">
-              <p>{holdError}</p>
-              {heldDetails && holdError.startsWith("This time is held") && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForm(heldDetails);
-                    setHoldError(null);
-                  }}
-                  className="inline-flex min-h-11 items-center font-medium text-text-accent hover:underline"
-                >
-                  Use earlier details
-                </button>
-              )}
-            </div>
+            <p role="alert" className="text-sm text-error">
+              {holdError}
+            </p>
           )}
           <div className="hidden lg:block">
             <Button type="submit" disabled={creatingHold} size="lg" className="w-full">
@@ -376,7 +394,7 @@ export function BookingFlow({ room }: { room: Room }) {
                 <dt className="text-text-secondary">Booking</dt>
                 <dd className="font-medium text-text-primary">{room.name}</dd>
                 <dd className="text-text-primary">{formatDateLong(booking.date)}</dd>
-                <dd className="tabular text-text-primary">
+                <dd className="tabular-nums text-text-primary">
                   {timeRange(booking.startTime, booking.endTime)} {zoneAbbrev(SITE.timeZone, booking.date)} · {hoursLabel(booking.durationMinutes)}
                 </dd>
               </div>
@@ -403,10 +421,11 @@ export function BookingFlow({ room }: { room: Room }) {
           </dl>
 
           <p className="text-sm text-text-secondary">
-            Need to change or cancel? Contact us.{" "}
-            <Link href="/faq" className="font-medium text-text-accent hover:underline">
-              A formal cancellation policy is being finalized.
+            Need to change or cancel?{" "}
+            <Link href="/contact" className="font-medium text-text-accent hover:underline">
+              Contact us
             </Link>
+            . A formal cancellation policy is being finalized.
           </p>
 
           <p className="sr-only" role="alert">
@@ -424,7 +443,7 @@ export function BookingFlow({ room }: { room: Room }) {
               {booking.holdExpiresAt && (
                 <p className="text-sm text-text-primary">
                   {holdEndingSoon && <span className="font-semibold">Ending soon: </span>}
-                  Held for you until <span className="tabular">{clockInZone(booking.holdExpiresAt)}</span>.
+                  Held for you until <span className="tabular-nums">{clockInZone(booking.holdExpiresAt)}</span>.
                 </p>
               )}
               {creatingIntent && <p className="text-sm text-text-secondary">Preparing payment…</p>}
@@ -454,10 +473,10 @@ export function BookingFlow({ room }: { room: Room }) {
           {/* Reserve the bar's height at the end of the page so it never covers the footer. */}
           <style>{"@media (width < 64rem) { body { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)); } }"}</style>
           <div className="flex min-w-0 flex-1 flex-col">
-            <p className="tabular truncate text-sm font-medium text-text-primary">
+            <p className="truncate text-sm font-medium tabular-nums text-text-primary">
               {selectedStart && endTime ? timeRange(selectedStart, endTime) : "Pick a time"}
             </p>
-            <p className="tabular truncate text-sm text-text-secondary">
+            <p className="truncate text-sm tabular-nums text-text-secondary">
               {selectedStart ? formatDateShort(date) : `${durationMinutes / 60} h`} · {formatUsd(total)}
             </p>
           </div>

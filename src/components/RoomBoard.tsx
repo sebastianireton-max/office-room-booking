@@ -83,7 +83,7 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
               aria-pressed={type === t}
               onClick={() => setType(t)}
               className={`min-h-11 min-w-11 whitespace-nowrap rounded-token-full px-2.5 text-sm font-medium transition-colors sm:px-4 ${
-                type === t ? "bg-accent text-on-accent" : "text-text-primary hover:bg-surface-raised"
+                type === t ? "bg-inverse text-on-inverse-strong" : "text-text-primary hover:bg-surface-raised"
               }`}
             >
               {t === "all" ? "All" : ROOM_TYPE_LABELS[t]}
@@ -106,7 +106,7 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
           const times = open?.[room.id];
           return (
             <li key={room.id} className="enter border-b border-border-subtle" style={{ "--i": i } as React.CSSProperties}>
-              <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-4 py-6 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-8 lg:grid-cols-[13rem_minmax(0,21rem)_minmax(0,1fr)]">
+              <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-4 py-6 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-8 lg:grid-cols-[13rem_minmax(0,1fr)_auto]">
                 <Link
                   href={`/rooms/${room.id}`}
                   tabIndex={-1}
@@ -136,7 +136,7 @@ export function RoomBoard({ rooms, timeZone }: { rooms: Room[]; timeZone: string
                   </p>
                 </div>
 
-                <div className="col-span-2 flex flex-col gap-2 lg:col-span-1">
+                <div className="col-span-2 flex flex-col gap-2 lg:col-span-1 lg:w-[27rem]">
                   <p className="text-sm text-text-secondary">Open start times</p>
                   {!times && !error && <div className="h-11 animate-pulse rounded-token-sm bg-surface-raised motion-reduce:animate-none" />}
                   {times && times.length === 0 && <p className="text-sm text-text-primary">No open times this day. Try another date.</p>}

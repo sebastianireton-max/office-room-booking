@@ -49,6 +49,19 @@ export function nowInZone(timeZone: string, at = new Date()): { date: string; mi
   return { date: `${parts.year}-${parts.month}-${parts.day}`, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
 }
 
+/** Wall-clock "2026-09-23" "10:00" in `timeZone` -> the UTC instant. Two passes settle DST edges. */
+export function zonedToUtc(isoDate: string, hhmm: string, timeZone: string): Date {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const target = Date.UTC(y, m - 1, d, Number(hhmm.slice(0, 2)), Number(hhmm.slice(3, 5)));
+  let t = target;
+  for (let i = 0; i < 2; i++) {
+    const z = nowInZone(timeZone, new Date(t));
+    const [zy, zm, zd] = z.date.split("-").map(Number);
+    t += target - (Date.UTC(zy, zm - 1, zd) + z.minutes * 60_000);
+  }
+  return new Date(t);
+}
+
 /** "2026-09-13" + n days, calendar arithmetic only (no time zone involved). */
 export function addDaysIso(isoDate: string, days: number): string {
   const [y, m, d] = isoDate.split("-").map(Number);

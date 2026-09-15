@@ -33,6 +33,11 @@ export const createHoldSchema = z.object({
 
 export const CUSTOMER_FIELDS = ["customerName", "customerEmail", "customerPhone"] as const;
 
+/** Correcting name/email/phone on a live hold, without giving up the slot. */
+export const updateHoldSchema = createHoldSchema
+  .pick({ customerName: true, customerEmail: true, customerPhone: true })
+  .extend({ bookingId: z.string().uuid() });
+
 export const createPaymentIntentSchema = z.object({
   bookingId: z.string().uuid(),
 });

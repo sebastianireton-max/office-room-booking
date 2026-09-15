@@ -22,7 +22,8 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   // On a room page the booking widget is right there; don't send people back.
-  const bookHref = pathname.startsWith("/rooms/") ? "#book" : "/#rooms";
+  const onRoom = pathname.startsWith("/rooms/");
+  const bookHref = onRoom ? "#book" : "/#rooms";
 
   return (
     <header className="sticky top-3 z-40 px-3 pt-3 sm:px-6">
@@ -55,7 +56,8 @@ export function SiteHeader() {
             })}
             <Link
               href={bookHref}
-              className={`ml-2 ${buttonClass()}`}
+              // One filled accent per viewport: the booking widget owns it on a room page.
+              className={`ml-2 ${buttonClass(onRoom ? "secondary" : "primary")}`}
             >
               Book a room
             </Link>

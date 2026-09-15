@@ -21,7 +21,7 @@ export function StepIndicator({ steps, currentIndex }: { steps: Step[]; currentI
                 className={[
                   "tabular flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium",
                   state === "completed" && "bg-success text-on-success",
-                  state === "current" && "bg-accent text-on-accent",
+                  state === "current" && "border-2 border-border-accent bg-surface font-semibold text-text-accent",
                   state === "upcoming" && "border border-border-default bg-surface text-text-secondary",
                 ]
                   .filter(Boolean)

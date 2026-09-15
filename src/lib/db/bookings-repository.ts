@@ -248,6 +248,25 @@ export function createHold(input: CreateHoldInput): Booking {
   }
 }
 
+/**
+ * Updates the customer fields on a hold that is still live. Only the contact
+ * details move; slot, price and payment intent stay as they are. The webhook reads
+ * the email from this row at confirmation, so the corrected address is the one used.
+ */
+export function updateHoldCustomer(
+  id: string,
+  c: { customerName: string; customerEmail: string; customerPhone: string | null }
+): Booking | null {
+  const now = new Date().toISOString();
+  const result = getDb()
+    .prepare(
+      `UPDATE bookings SET customer_name = ?, customer_email = ?, customer_phone = ?, updated_at = ?
+       WHERE id = ? AND status = 'pending_payment' AND hold_expires_at > ?`
+    )
+    .run(c.customerName, c.customerEmail, c.customerPhone, now, id, now);
+  return result.changes > 0 ? getBookingById(id) : null;
+}
+
 export function getBookingById(id: string): Booking | null {
   const row = getDb().prepare(`SELECT * FROM bookings WHERE id = ?`).get(id) as BookingRow | undefined;
   return row ? rowToBooking(row) : null;
